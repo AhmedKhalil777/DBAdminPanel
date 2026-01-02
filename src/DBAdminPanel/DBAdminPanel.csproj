@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>DBAdminPanel</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Authors>DBAdminPanel</Authors>
+    <Description>ASP.NET Core package for automatic MVC admin panel generation from EF Core models. Scans your DbContext and provides complete CRUD operations for all entities, accessible via /DBAdminPanel route.</Description>
+    <PackageTags>efcore;mvc;admin;dashboard;crud;scaffolding</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/yourusername/DBAdminPanel</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RazorCompileOnBuild>true</RazorCompileOnBuild>
+    <RazorCompileOnPublish>true</RazorCompileOnPublish>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\DBAdminPanel.SourceGenerator\DBAdminPanel.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <Target Name="BuildAngular" BeforeTargets="Build">
+    <Exec Command="npm install" WorkingDirectory="$(MSBuildProjectDirectory)/dbadminpanel-ui" Condition="!Exists('$(MSBuildProjectDirectory)/dbadminpanel-ui/node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(MSBuildProjectDirectory)/dbadminpanel-ui" />
+  </Target>
+
+  <ItemGroup>
+    <Content Include="wwwroot/**/*" Pack="true" PackagePath="wwwroot\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,139 @@
+.entity-table-container {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+  color: #495057;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #bb2d3b;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.table thead {
+  background-color: #f8f9fa;
+}
+
+.table th,
+.table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 4px;
+}
+
+.page-item {
+  cursor: pointer;
+}
+
+.page-link {
+  display: block;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  color: #0d6efd;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.page-link:hover {
+  background-color: #e9ecef;
+}
+
+.page-item.active .page-link {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+
+.page-item.disabled .page-link {
+  color: #6c757d;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+

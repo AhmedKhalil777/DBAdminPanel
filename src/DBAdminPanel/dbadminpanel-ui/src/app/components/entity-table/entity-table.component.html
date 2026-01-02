@@ -1,0 +1,64 @@
+<div class="entity-table-container">
+  <div class="header">
+    <h2>{{ entityMetadata.name }}</h2>
+    <button class="btn btn-primary" (click)="createNew()">Create New</button>
+  </div>
+
+  <div *ngIf="showCreateForm" class="form-overlay">
+    <app-entity-form
+      [entityMetadata]="entityMetadata"
+      [entity]="editingEntity"
+      (save)="onSave()"
+      (cancel)="onCancel()">
+    </app-entity-form>
+  </div>
+
+  <div *ngIf="data.length === 0" class="empty-state">
+    <p>No records found</p>
+  </div>
+
+  <div *ngIf="data.length > 0">
+    <table class="table">
+      <thead>
+        <tr>
+          <th *ngFor="let prop of entityMetadata.properties">{{ prop.name }}</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of paginatedData">
+          <td *ngFor="let prop of entityMetadata.properties">
+            {{ item[prop.name] ?? '' }}
+          </td>
+          <td>
+            <button class="btn btn-sm btn-primary" (click)="edit(item)">Edit</button>
+            <button class="btn btn-sm btn-danger" (click)="delete(item)">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pagination-container">
+      <div class="pagination-info">
+        Showing {{ startIndex }} to {{ endIndex }} of {{ totalItems }} entries
+      </div>
+      <nav>
+        <ul class="pagination">
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <a class="page-link" (click)="goToPage(currentPage - 1)">Previous</a>
+          </li>
+          <li 
+            *ngFor="let page of [].constructor(totalPages); let i = index" 
+            class="page-item" 
+            [class.active]="currentPage === i + 1">
+            <a class="page-link" (click)="goToPage(i + 1)">{{ i + 1 }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <a class="page-link" (click)="goToPage(currentPage + 1)">Next</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+

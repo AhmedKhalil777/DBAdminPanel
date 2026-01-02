@@ -1,0 +1,41 @@
+<div class="dashboard-container">
+  <div class="sidebar">
+    <h2>DB Admin Panel</h2>
+    
+    <div class="dbcontext-selector" *ngIf="dbContexts.length > 1">
+      <label>DbContext:</label>
+      <select [(ngModel)]="selectedDbContext" (change)="selectDbContext(selectedDbContext!)">
+        <option [value]="null">All</option>
+        <option *ngFor="let ctx of dbContexts" [value]="ctx">{{ ctx }}</option>
+      </select>
+    </div>
+
+    <div class="entity-tree">
+      <div *ngFor="let dbContext of dbContexts" class="tree-group">
+        <div class="tree-group-header" *ngIf="dbContexts.length > 1">{{ dbContext }}</div>
+        <div class="tree-children">
+          <div 
+            *ngFor="let entity of groupedMetadata[dbContext]" 
+            class="tree-item"
+            [class.active]="selectedEntity?.name === entity.name"
+            (click)="selectEntity(entity)">
+            {{ entity.name }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div *ngIf="!selectedEntity" class="welcome">
+      <h1>Welcome to DB Admin Panel</h1>
+      <p>Select an entity from the sidebar to view and manage data.</p>
+    </div>
+
+    <app-entity-table 
+      *ngIf="selectedEntity" 
+      [entityMetadata]="selectedEntity">
+    </app-entity-table>
+  </div>
+</div>
+

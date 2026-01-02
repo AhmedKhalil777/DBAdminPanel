@@ -1,0 +1,49 @@
+<div class="form-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>{{ isEditMode ? 'Edit' : 'Create' }} {{ entityMetadata.name }}</h3>
+      <button class="close-btn" (click)="onCancel()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form (ngSubmit)="onSubmit()">
+        <div *ngFor="let prop of entityMetadata.properties" class="form-group">
+          <ng-container *ngIf="!prop.isKey || isEditMode">
+            <label [for]="prop.name">{{ prop.name }}</label>
+            
+            <input
+              *ngIf="prop.inputType === 'text' || prop.inputType === 'number' || prop.inputType === 'date' || prop.inputType === 'datetime-local' || prop.inputType === 'time'"
+              [type]="prop.inputType"
+              [id]="prop.name"
+              [name]="prop.name"
+              [(ngModel)]="formData[prop.name]"
+              [step]="prop.type.includes('decimal') || prop.type.includes('float') || prop.type.includes('double') ? 'any' : '1'"
+              [hidden]="prop.isKey && isEditMode"
+              class="form-control" />
+
+            <div *ngIf="prop.inputType === 'checkbox'" class="form-check">
+              <input
+                type="checkbox"
+                [id]="prop.name"
+                [name]="prop.name"
+                [(ngModel)]="formData[prop.name]"
+                class="form-check-input" />
+              <label [for]="prop.name" class="form-check-label">{{ prop.name }}</label>
+            </div>
+
+            <input
+              *ngIf="prop.isKey && isEditMode"
+              type="hidden"
+              [name]="prop.name"
+              [(ngModel)]="formData[prop.name]" />
+          </ng-container>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
