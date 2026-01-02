@@ -1,49 +1,117 @@
 <div class="form-modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>{{ isEditMode ? 'Edit' : 'Create' }} {{ entityMetadata.name }}</h3>
-      <button class="close-btn" (click)="onCancel()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form (ngSubmit)="onSubmit()">
-        <div *ngFor="let prop of entityMetadata.properties" class="form-group">
-          <ng-container *ngIf="!prop.isKey || isEditMode">
-            <label [for]="prop.name">{{ prop.name }}</label>
-            
-            <input
-              *ngIf="prop.inputType === 'text' || prop.inputType === 'number' || prop.inputType === 'date' || prop.inputType === 'datetime-local' || prop.inputType === 'time'"
-              [type]="prop.inputType"
-              [id]="prop.name"
-              [name]="prop.name"
-              [(ngModel)]="formData[prop.name]"
-              [step]="prop.type.includes('decimal') || prop.type.includes('float') || prop.type.includes('double') ? 'any' : '1'"
-              [hidden]="prop.isKey && isEditMode"
-              class="form-control" />
+  <mat-card class="form-card">
+    <mat-card-header>
+      <div mat-card-avatar class="form-avatar">
+        <mat-icon>{{ isEditMode ? 'edit' : 'add_circle' }}</mat-icon>
+      </div>
+      <mat-card-title>{{ isEditMode ? 'Edit' : 'Create' }} {{ entityMetadata.name }}</mat-card-title>
+      <mat-card-subtitle>{{ entityMetadata.properties.length }} properties</mat-card-subtitle>
+      <div class="spacer"></div>
+      <button mat-icon-button (click)="onCancel()" class="close-button">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-card-header>
 
-            <div *ngIf="prop.inputType === 'checkbox'" class="form-check">
+    <mat-divider></mat-divider>
+
+    <mat-card-content>
+      <form [formGroup]="formGroup" (ngSubmit)="onSubmit()" class="entity-form" *ngIf="formGroup">
+        <div class="form-grid">
+          <ng-container *ngFor="let prop of entityMetadata.properties">
+            <ng-container *ngIf="!prop.isKey || isEditMode">
+              <!-- Text, Number, Email inputs -->
+              <mat-form-field appearance="outline" class="full-width" *ngIf="prop.inputType === 'text' || prop.inputType === 'number' || prop.inputType === 'email'">
+                <mat-label>{{ prop.name }}</mat-label>
+                <input
+                  matInput
+                  [type]="getFieldType(prop)"
+                  [formControlName]="prop.name"
+                  [readonly]="prop.isKey && isEditMode"
+                  [placeholder]="prop.name">
+                <mat-icon matPrefix>{{ getFieldIcon(prop) }}</mat-icon>
+                <mat-hint *ngIf="prop.isKey" class="key-hint">Primary Key</mat-hint>
+              </mat-form-field>
+
+              <!-- Date input with Material Datepicker -->
+              <mat-form-field appearance="outline" *ngIf="prop.inputType === 'date'" class="full-width">
+                <mat-label>{{ prop.name }}</mat-label>
+                <input 
+                  matInput 
+                  [matDatepicker]="picker"
+                  [formControlName]="prop.name"
+                  [placeholder]="prop.name"
+                  readonly>
+                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+                <mat-icon matPrefix>calendar_today</mat-icon>
+                <mat-hint>Click calendar icon to select a date</mat-hint>
+              </mat-form-field>
+
+              <!-- DateTime input (datetime-local) -->
+              <mat-form-field appearance="outline" *ngIf="prop.inputType === 'datetime-local'" class="full-width">
+                <mat-label>{{ prop.name }}</mat-label>
+                <input 
+                  matInput 
+                  type="datetime-local"
+                  step="1"
+                  [formControlName]="prop.name"
+                  [placeholder]="prop.name">
+                <mat-icon matPrefix>event</mat-icon>
+                <mat-hint>Select date and time (local timezone)</mat-hint>
+              </mat-form-field>
+
+              <!-- Time input -->
+              <mat-form-field appearance="outline" *ngIf="prop.inputType === 'time'" class="full-width">
+                <mat-label>{{ prop.name }}</mat-label>
+                <input 
+                  matInput 
+                  type="time"
+                  [formControlName]="prop.name"
+                  [placeholder]="prop.name">
+                <mat-icon matPrefix>schedule</mat-icon>
+              </mat-form-field>
+
+              <!-- Checkbox for boolean fields -->
+              <div *ngIf="prop.inputType === 'checkbox'" class="checkbox-field">
+                <mat-checkbox
+                  [formControlName]="prop.name"
+                  color="primary">
+                  <span class="checkbox-label">{{ prop.name }}</span>
+                </mat-checkbox>
+                <mat-hint *ngIf="prop.isKey" class="key-hint">Primary Key</mat-hint>
+              </div>
+
+              <!-- Hidden field for key in edit mode -->
               <input
-                type="checkbox"
-                [id]="prop.name"
-                [name]="prop.name"
-                [(ngModel)]="formData[prop.name]"
-                class="form-check-input" />
-              <label [for]="prop.name" class="form-check-label">{{ prop.name }}</label>
-            </div>
-
-            <input
-              *ngIf="prop.isKey && isEditMode"
-              type="hidden"
-              [name]="prop.name"
-              [(ngModel)]="formData[prop.name]" />
+                *ngIf="prop.isKey && isEditMode"
+                type="hidden"
+                [formControlName]="prop.name">
+            </ng-container>
           </ng-container>
         </div>
 
+        <mat-divider class="form-divider"></mat-divider>
+
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
+          <button 
+            mat-stroked-button 
+            type="button" 
+            (click)="onCancel()"
+            class="cancel-button">
+            <mat-icon>cancel</mat-icon>
+            Cancel
+          </button>
+          <button 
+            mat-raised-button 
+            color="primary" 
+            type="submit"
+            [disabled]="formGroup.invalid"
+            class="save-button">
+            <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+            {{ isEditMode ? 'Update' : 'Create' }}
+          </button>
         </div>
       </form>
-    </div>
-  </div>
+    </mat-card-content>
+  </mat-card>
 </div>
-

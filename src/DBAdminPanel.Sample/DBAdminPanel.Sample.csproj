@@ -9,6 +9,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.5.0" />
   </ItemGroup>
@@ -21,5 +25,21 @@
   <ItemGroup>
     <ProjectReference Include="..\DBAdminPanel.SourceGenerator\DBAdminPanel.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <!-- Copy wwwroot files from DBAdminPanel to this project's wwwroot -->
+  <Target Name="CopyDBAdminPanelWwwRoot" BeforeTargets="Build">
+    <PropertyGroup>
+      <SourceWwwRoot>$(MSBuildThisFileDirectory)..\DBAdminPanel\wwwroot</SourceWwwRoot>
+      <TargetWwwRoot>$(MSBuildProjectDirectory)\wwwroot</TargetWwwRoot>
+    </PropertyGroup>
+    <ItemGroup>
+      <WwwRootFiles Include="$(SourceWwwRoot)\**\*" Condition="Exists('$(SourceWwwRoot)')" />
+    </ItemGroup>
+    <MakeDir Directories="$(TargetWwwRoot)" Condition="!Exists('$(TargetWwwRoot)')" />
+    <Copy SourceFiles="@(WwwRootFiles)" 
+          DestinationFiles="@(WwwRootFiles->'$(TargetWwwRoot)\%(RecursiveDir)%(Filename)%(Extension)')" 
+          SkipUnchangedFiles="true" 
+          Condition="Exists('$(SourceWwwRoot)')" />
+  </Target>
 
 </Project>

@@ -75,25 +75,54 @@ public class Program
         // Use DBAdminPanel
         app.UseDBAdminPanel();
 
-        // Ensure databases are created
+        // Apply migrations for all DbContexts
         using (var scope = app.Services.CreateScope())
         {
             var services = scope.ServiceProvider;
+            var logger = services.GetRequiredService<ILogger<Program>>();
             try
             {
-                services.GetRequiredService<UserDbContext>().Database.EnsureCreated();
-                services.GetRequiredService<ProductDbContext>().Database.EnsureCreated();
-                services.GetRequiredService<OrderDbContext>().Database.EnsureCreated();
-                services.GetRequiredService<BlogDbContext>().Database.EnsureCreated();
-                services.GetRequiredService<CategoryDbContext>().Database.EnsureCreated();
-                services.GetRequiredService<EmployeeDbContext>().Database.EnsureCreated();
-                services.GetRequiredService<InvoiceDbContext>().Database.EnsureCreated();
-                services.GetRequiredService<NotificationDbContext>().Database.EnsureCreated();
+                logger.LogInformation("Applying migrations for all DbContexts...");
+                
+                // Apply migrations for each DbContext
+                var userContext = services.GetRequiredService<UserDbContext>();
+                userContext.Database.Migrate();
+                logger.LogInformation("UserDbContext migrations applied.");
+                
+                var productContext = services.GetRequiredService<ProductDbContext>();
+                productContext.Database.Migrate();
+                logger.LogInformation("ProductDbContext migrations applied.");
+                
+                var orderContext = services.GetRequiredService<OrderDbContext>();
+                orderContext.Database.Migrate();
+                logger.LogInformation("OrderDbContext migrations applied.");
+                
+                var blogContext = services.GetRequiredService<BlogDbContext>();
+                blogContext.Database.Migrate();
+                logger.LogInformation("BlogDbContext migrations applied.");
+                
+                var categoryContext = services.GetRequiredService<CategoryDbContext>();
+                categoryContext.Database.Migrate();
+                logger.LogInformation("CategoryDbContext migrations applied.");
+                
+                var employeeContext = services.GetRequiredService<EmployeeDbContext>();
+                employeeContext.Database.Migrate();
+                logger.LogInformation("EmployeeDbContext migrations applied.");
+                
+                var invoiceContext = services.GetRequiredService<InvoiceDbContext>();
+                invoiceContext.Database.Migrate();
+                logger.LogInformation("InvoiceDbContext migrations applied.");
+                
+                var notificationContext = services.GetRequiredService<NotificationDbContext>();
+                notificationContext.Database.Migrate();
+                logger.LogInformation("NotificationDbContext migrations applied.");
+                
+                logger.LogInformation("All migrations applied successfully.");
             }
             catch (Exception ex)
             {
-                var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "An error occurred creating the databases.");
+                logger.LogError(ex, "An error occurred applying migrations.");
+                throw;
             }
         }
 

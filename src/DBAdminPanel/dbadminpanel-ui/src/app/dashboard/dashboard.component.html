@@ -1,41 +1,104 @@
 <div class="dashboard-container">
-  <div class="sidebar">
-    <h2>DB Admin Panel</h2>
-    
-    <div class="dbcontext-selector" *ngIf="dbContexts.length > 1">
-      <label>DbContext:</label>
-      <select [(ngModel)]="selectedDbContext" (change)="selectDbContext(selectedDbContext!)">
-        <option [value]="null">All</option>
-        <option *ngFor="let ctx of dbContexts" [value]="ctx">{{ ctx }}</option>
-      </select>
-    </div>
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav 
+      mode="side" 
+      [opened]="sidenavOpened"
+      class="sidenav"
+      [fixedInViewport]="true"
+      [fixedTopGap]="64">
+      
+      <div class="sidenav-content">
+        <div class="sidenav-header">
+          <h2 class="app-title">
+            <mat-icon class="title-icon">database</mat-icon>
+            DB Admin Panel
+          </h2>
+        </div>
 
-    <div class="entity-tree">
-      <div *ngFor="let dbContext of dbContexts" class="tree-group">
-        <div class="tree-group-header" *ngIf="dbContexts.length > 1">{{ dbContext }}</div>
-        <div class="tree-children">
-          <div 
-            *ngFor="let entity of groupedMetadata[dbContext]" 
-            class="tree-item"
-            [class.active]="selectedEntity?.name === entity.name"
-            (click)="selectEntity(entity)">
-            {{ entity.name }}
+        <mat-divider></mat-divider>
+
+        <div class="dbcontext-selector" *ngIf="dbContexts.length > 1">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>DbContext</mat-label>
+            <mat-select [(ngModel)]="selectedDbContext" (selectionChange)="selectDbContext(selectedDbContext!)">
+              <mat-option [value]="null">All Contexts</mat-option>
+              <mat-option *ngFor="let ctx of dbContexts" [value]="ctx">
+                {{ ctx }} ({{ getEntityCount(ctx) }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="entity-tree">
+          <div *ngFor="let dbContext of dbContexts" class="tree-group">
+            <div class="tree-group-header" *ngIf="dbContexts.length > 1">
+              <mat-chip-set>
+                <mat-chip>
+                  <mat-icon>storage</mat-icon>
+                  {{ dbContext }}
+                  <span class="chip-count">({{ getEntityCount(dbContext) }})</span>
+                </mat-chip>
+              </mat-chip-set>
+            </div>
+            <mat-nav-list class="tree-children">
+              <a 
+                mat-list-item
+                *ngFor="let entity of groupedMetadata[dbContext]" 
+                [class.active]="selectedEntity?.name === entity.name"
+                (click)="selectEntity(entity)"
+                class="entity-item">
+                <mat-icon matListItemIcon>table_chart</mat-icon>
+                <span matListItemTitle>{{ entity.name }}</span>
+                <span matListItemLine>{{ entity.properties.length }} properties</span>
+              </a>
+            </mat-nav-list>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </mat-sidenav>
 
-  <div class="main-content">
-    <div *ngIf="!selectedEntity" class="welcome">
-      <h1>Welcome to DB Admin Panel</h1>
-      <p>Select an entity from the sidebar to view and manage data.</p>
-    </div>
+    <mat-sidenav-content class="main-content">
+      <mat-toolbar class="main-toolbar">
+        <button mat-icon-button (click)="toggleSidenav()" class="menu-toggle">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <span class="toolbar-title">{{ selectedEntity?.name || 'Dashboard' }}</span>
+        <span class="spacer"></span>
+        <mat-icon class="toolbar-icon">admin_panel_settings</mat-icon>
+      </mat-toolbar>
 
-    <app-entity-table 
-      *ngIf="selectedEntity" 
-      [entityMetadata]="selectedEntity">
-    </app-entity-table>
-  </div>
+      <div class="content-wrapper">
+        <div *ngIf="!selectedEntity" class="welcome-card fade-in">
+          <mat-card class="welcome-card-inner">
+            <mat-card-header>
+              <div mat-card-avatar class="welcome-avatar">
+                <mat-icon>dashboard</mat-icon>
+              </div>
+              <mat-card-title>Welcome to DB Admin Panel</mat-card-title>
+              <mat-card-subtitle>Modern Database Management Interface</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="welcome-text">
+                Select an entity from the sidebar to view and manage your database records.
+                <br>
+                <span class="highlight">Total Entities: {{ allMetadata.length }}</span>
+              </p>
+              <div class="stats-grid" *ngIf="allMetadata.length > 0">
+                <mat-card class="stat-card" *ngFor="let ctx of dbContexts">
+                  <mat-card-content>
+                    <div class="stat-value">{{ getEntityCount(ctx) }}</div>
+                    <div class="stat-label">{{ ctx }}</div>
+                  </mat-card-content>
+                </mat-card>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <div *ngIf="selectedEntity" class="entity-content fade-in">
+          <app-entity-table [entityMetadata]="selectedEntity"></app-entity-table>
+        </div>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
 </div>
-

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -13,15 +13,11 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/yourusername/DBAdminPanel</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RazorCompileOnBuild>true</RazorCompileOnBuild>
-    <RazorCompileOnPublish>true</RazorCompileOnPublish>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.0" />
   </ItemGroup>
   
   <ItemGroup>
@@ -33,8 +29,45 @@
   </ItemGroup>
 
   <Target Name="BuildAngular" BeforeTargets="Build">
+    <PropertyGroup>
+      <AngularDistPath>$(MSBuildProjectDirectory)/dbadminpanel-ui/dist</AngularDistPath>
+      <WwwRootPath>$(MSBuildProjectDirectory)/wwwroot</WwwRootPath>
+    </PropertyGroup>
+    
+    <!-- Install npm dependencies if node_modules doesn't exist -->
     <Exec Command="npm install" WorkingDirectory="$(MSBuildProjectDirectory)/dbadminpanel-ui" Condition="!Exists('$(MSBuildProjectDirectory)/dbadminpanel-ui/node_modules')" />
+    
+    <!-- Build Angular application -->
     <Exec Command="npm run build" WorkingDirectory="$(MSBuildProjectDirectory)/dbadminpanel-ui" />
+    
+    <!-- Copy Angular dist output to wwwroot for packaging -->
+    <!-- Remove old wwwroot content and recreate directory -->
+    <RemoveDir Directories="$(WwwRootPath)" Condition="Exists('$(WwwRootPath)')" />
+    <MakeDir Directories="$(WwwRootPath)" />
+    
+    <!-- Copy files from dist/browser to wwwroot (flatten structure) -->
+    <!-- Angular 19+ outputs to browser subdirectory, but we need files at root for static file serving -->
+    <PropertyGroup>
+      <AngularBrowserPath>$(AngularDistPath)/browser</AngularBrowserPath>
+    </PropertyGroup>
+    <!-- Copy browser subdirectory contents to wwwroot root -->
+    <Exec Command="xcopy /E /I /Y /Q &quot;$(AngularBrowserPath)\*&quot; &quot;$(WwwRootPath)\&quot;" 
+          Condition="$([MSBuild]::IsOSPlatform('Windows')) And Exists('$(AngularBrowserPath)')" 
+          IgnoreExitCode="false" />
+    <Exec Command="cp -R &quot;$(AngularBrowserPath)/&quot;* &quot;$(WwwRootPath)/&quot;" 
+          Condition="!$([MSBuild]::IsOSPlatform('Windows')) And Exists('$(AngularBrowserPath)')" />
+    <!-- Also copy root-level files from dist (like 3rdpartylicenses.txt, prerendered-routes.json) -->
+    <ItemGroup>
+      <DistRootFiles Include="$(AngularDistPath)\*.txt" />
+      <DistRootFiles Include="$(AngularDistPath)\*.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DistRootFiles)" DestinationFolder="$(WwwRootPath)" SkipUnchangedFiles="true" Condition="Exists('$(AngularBrowserPath)')" />
+    <!-- Fallback: if browser subdirectory doesn't exist, copy from dist root (older Angular versions) -->
+    <Exec Command="xcopy /E /I /Y /Q &quot;$(AngularDistPath)\*&quot; &quot;$(WwwRootPath)\&quot;" 
+          Condition="$([MSBuild]::IsOSPlatform('Windows')) And !Exists('$(AngularBrowserPath)')" 
+          IgnoreExitCode="false" />
+    <Exec Command="cp -R &quot;$(AngularDistPath)/&quot;* &quot;$(WwwRootPath)/&quot;" 
+          Condition="!$([MSBuild]::IsOSPlatform('Windows')) And !Exists('$(AngularBrowserPath)')" />
   </Target>
 
   <ItemGroup>

@@ -1,101 +1,275 @@
 .dashboard-container {
   display: flex;
   height: 100vh;
+  width: 100vw;
   overflow: hidden;
+  position: relative;
 }
 
-.sidebar {
-  width: 300px;
-  background-color: #f8f9fa;
-  border-right: 1px solid #dee2e6;
+.sidenav-container {
+  width: 100%;
+  height: 100%;
+}
+
+.sidenav {
+  width: 320px;
+  background: linear-gradient(180deg, rgba(26, 31, 58, 0.95) 0%, rgba(15, 20, 25, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(0, 212, 255, 0.2);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+}
+
+.sidenav-content {
+  padding: 16px;
+  height: 100%;
   overflow-y: auto;
-  padding: 20px;
 }
 
-.sidebar h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #495057;
+.sidenav-header {
+  margin-bottom: 24px;
+  padding: 16px 0;
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.title-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  color: #00d4ff !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dbcontext-selector {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.dbcontext-selector label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #495057;
-}
-
-.dbcontext-selector select {
+.full-width {
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
 }
 
 .entity-tree {
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .tree-group {
-  margin-bottom: 15px;
+  margin-bottom: 24px;
 }
 
 .tree-group-header {
-  font-weight: bold;
-  color: #495057;
-  margin-bottom: 8px;
-  padding: 8px;
-  background-color: #e9ecef;
-  border-radius: 4px;
-  font-size: 14px;
+  margin-bottom: 12px;
+  padding: 8px 0;
+}
+
+.chip-count {
+  margin-left: 8px;
+  opacity: 0.8;
 }
 
 .tree-children {
-  margin-left: 10px;
+  padding: 0;
 }
 
-.tree-item {
-  padding: 10px;
+.entity-item {
+  border-radius: 8px;
   margin: 4px 0;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 3px solid transparent;
 }
 
-.tree-item:hover {
-  background-color: #e9ecef;
+.entity-item:hover {
+  background: rgba(0, 212, 255, 0.1) !important;
+  border-left-color: #00d4ff;
+  transform: translateX(4px);
 }
 
-.tree-item.active {
-  background-color: #0d6efd;
-  color: white;
+.entity-item.active {
+  background: linear-gradient(90deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 212, 255, 0.1) 100%) !important;
+  border-left-color: #00d4ff;
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+}
+
+.entity-item.active ::ng-deep .mdc-list-item__primary-text {
+  color: #00d4ff !important;
+  font-weight: 600;
+}
+
+.entity-item mat-icon {
+  color: rgba(224, 224, 224, 0.7) !important;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.entity-item.active mat-icon {
+  color: #00d4ff !important;
+}
+
+.tree-group-header mat-icon {
+  color: #00d4ff !important;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
 }
 
 .main-content {
+  background: transparent;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-toolbar {
+  background: rgba(26, 31, 58, 0.9) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.menu-toggle {
+  color: #00d4ff !important;
+}
+
+.menu-toggle mat-icon {
+  color: #00d4ff !important;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.toolbar-title {
+  font-size: 20px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-left: 16px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.toolbar-icon {
+  color: #00d4ff !important;
+  opacity: 0.7;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.content-wrapper {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
-  background-color: #ffffff;
+  position: relative;
+  z-index: 1;
 }
 
-.welcome {
-  text-align: center;
-  padding: 40px;
+.welcome-card {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
 }
 
-.welcome h1 {
-  color: #495057;
-  margin-bottom: 10px;
+.welcome-card-inner {
+  background: rgba(26, 31, 58, 0.8) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.2) !important;
 }
 
-.welcome p {
-  color: #6c757d;
+.welcome-avatar {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-avatar mat-icon {
+  color: #0a0e27 !important;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.welcome-text {
   font-size: 16px;
+  line-height: 1.8;
+  color: rgba(224, 224, 224, 0.9);
+  margin: 16px 0;
 }
 
+.highlight {
+  color: #00d4ff;
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.stat-card {
+  background: rgba(0, 212, 255, 0.1) !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.3) !important;
+  border-color: #00d4ff !important;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: rgba(224, 224, 224, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.entity-content {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidenav {
+    width: 280px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

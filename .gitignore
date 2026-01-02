@@ -67,8 +67,8 @@ lerna-debug.log*
 .pnpm-debug.log*
 
 ## Angular build output
-dist/
-wwwroot/
+**/dist/
+**/wwwroot/
 *.js.map
 
 ## Angular specific

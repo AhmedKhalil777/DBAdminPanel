@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Mvc.Razor;
-using System.Collections.Generic;
-using System.Linq;
+using Microsoft.Extensions.FileProviders;
 
 namespace DBAdminPanel
 {
@@ -12,9 +11,9 @@ namespace DBAdminPanel
         {
             var assembly = typeof(DBAdminPanelExtensions).Assembly;
             
-            // Add the assembly as an application part so MVC can discover views and controllers
+            // Add the assembly as an application part so MVC can discover controllers
             // Generated controllers will be in the consuming project and automatically discovered
-            services.AddControllersWithViews()
+            services.AddControllers()
                 .AddApplicationPart(assembly);
             
             // Make routes case-insensitive
@@ -24,19 +23,65 @@ namespace DBAdminPanel
                 options.LowercaseQueryStrings = true;
             });
             
-            // Add custom view location expander to find views in the package
-            services.Configure<RazorViewEngineOptions>(options =>
-            {
-                options.ViewLocationExpanders.Add(new DBAdminPanelViewLocationExpander());
-            });
-            
             return services;
         }
 
         public static IApplicationBuilder UseDBAdminPanel(this IApplicationBuilder app)
         {
-            // Enable static files from wwwroot
-            app.UseStaticFiles();
+            // Enable static files from wwwroot for /DBAdminPanel/ path
+            var env = app.ApplicationServices.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+            var webRootPath = env.WebRootPath ?? System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
+            
+            // Ensure wwwroot directory exists
+            if (!System.IO.Directory.Exists(webRootPath))
+            {
+                System.IO.Directory.CreateDirectory(webRootPath);
+            }
+            
+            // Try to find wwwroot files - first in project wwwroot, then in package location
+            IFileProvider fileProvider;
+            try
+            {
+                if (System.IO.Directory.Exists(webRootPath) && System.IO.File.Exists(System.IO.Path.Combine(webRootPath, "index.html")))
+                {
+                    fileProvider = new PhysicalFileProvider(webRootPath);
+                }
+                else
+                {
+                    // Fallback to package wwwroot location
+                    var assembly = typeof(DBAdminPanelExtensions).Assembly;
+                    var assemblyLocation = System.IO.Path.GetDirectoryName(assembly.Location);
+                    if (!string.IsNullOrEmpty(assemblyLocation))
+                    {
+                        var packageWwwRoot = System.IO.Path.Combine(assemblyLocation, "wwwroot");
+                        if (System.IO.Directory.Exists(packageWwwRoot))
+                        {
+                            fileProvider = new PhysicalFileProvider(packageWwwRoot);
+                        }
+                        else
+                        {
+                            // Use project wwwroot (directory was created above)
+                            fileProvider = new PhysicalFileProvider(webRootPath);
+                        }
+                    }
+                    else
+                    {
+                        // Use project wwwroot (directory was created above)
+                        fileProvider = new PhysicalFileProvider(webRootPath);
+                    }
+                }
+            }
+            catch
+            {
+                // If all else fails, use project wwwroot
+                fileProvider = new PhysicalFileProvider(webRootPath);
+            }
+            
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                RequestPath = "/DBAdminPanel",
+                FileProvider = fileProvider
+            });
             // Routing is typically configured in UseEndpoints
             // This method is for any additional middleware configuration
             return app;
@@ -44,36 +89,62 @@ namespace DBAdminPanel
 
         public static WebApplication UseDBAdminPanel(this WebApplication app)
         {
-            // Enable static files from wwwroot
-            app.UseStaticFiles();
+            // Enable static files from wwwroot for /DBAdminPanel/ path
+            var webRootPath = app.Environment.WebRootPath ?? System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
+            
+            // Ensure wwwroot directory exists
+            if (!System.IO.Directory.Exists(webRootPath))
+            {
+                System.IO.Directory.CreateDirectory(webRootPath);
+            }
+            
+            // Try to find wwwroot files - first in project wwwroot, then in package location
+            IFileProvider fileProvider;
+            try
+            {
+                if (System.IO.Directory.Exists(webRootPath) && System.IO.File.Exists(System.IO.Path.Combine(webRootPath, "index.html")))
+                {
+                    fileProvider = new PhysicalFileProvider(webRootPath);
+                }
+                else
+                {
+                    // Fallback to package wwwroot location
+                    var assembly = typeof(DBAdminPanelExtensions).Assembly;
+                    var assemblyLocation = System.IO.Path.GetDirectoryName(assembly.Location);
+                    if (!string.IsNullOrEmpty(assemblyLocation))
+                    {
+                        var packageWwwRoot = System.IO.Path.Combine(assemblyLocation, "wwwroot");
+                        if (System.IO.Directory.Exists(packageWwwRoot))
+                        {
+                            fileProvider = new PhysicalFileProvider(packageWwwRoot);
+                        }
+                        else
+                        {
+                            // Use project wwwroot (directory was created above)
+                            fileProvider = new PhysicalFileProvider(webRootPath);
+                        }
+                    }
+                    else
+                    {
+                        // Use project wwwroot (directory was created above)
+                        fileProvider = new PhysicalFileProvider(webRootPath);
+                    }
+                }
+            }
+            catch
+            {
+                // If all else fails, use project wwwroot
+                fileProvider = new PhysicalFileProvider(webRootPath);
+            }
+            
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                RequestPath = "/DBAdminPanel",
+                FileProvider = fileProvider
+            });
             // Overload for WebApplication (minimal hosting)
             // Routing is typically configured via MapControllers/MapControllerRoute
             return app;
-        }
-    }
-
-    public class DBAdminPanelViewLocationExpander : IViewLocationExpander
-    {
-        public void PopulateValues(ViewLocationExpanderContext context)
-        {
-            // No values to populate
-        }
-
-        public IEnumerable<string> ExpandViewLocations(ViewLocationExpanderContext context, IEnumerable<string> viewLocations)
-        {
-            // Add view locations from the DBAdminPanel package assembly
-            var assembly = typeof(DBAdminPanelExtensions).Assembly;
-            var assemblyName = assembly.GetName().Name;
-            
-            // For Razor Class Library, views are compiled and available via the assembly
-            // Add standard view locations that MVC will check
-            return viewLocations.Concat(new[]
-            {
-                $"/Views/DBAdminPanel/{{1}}/{{0}}.cshtml",
-                $"/Views/DBAdminPanel/Shared/{{0}}.cshtml",
-                $"/Areas/DBAdminPanel/Views/{{1}}/{{0}}.cshtml",
-                $"/Areas/DBAdminPanel/Views/Shared/{{0}}.cshtml"
-            });
         }
     }
 }
