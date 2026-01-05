@@ -11,3 +11,4 @@ public class Notification
     public string Type { get; set; } = string.Empty;
 }
 
+

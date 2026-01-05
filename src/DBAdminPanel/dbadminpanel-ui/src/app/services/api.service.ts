@@ -42,8 +42,19 @@ export class ApiService {
     return this.http.get<EntityMetadata>(`${this.baseUrl}/api/metadata/${entityName}`);
   }
 
-  getAllEntities(entityName: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/${entityName}/api`);
+  getAllEntities(entityName: string, page?: number, pageSize?: number): Observable<{data: any[], totalCount: number, page: number, pageSize: number}> {
+    let url = `${this.baseUrl}/${entityName}/api`;
+    const params: string[] = [];
+    if (page !== undefined && page !== null) {
+      params.push(`page=${page}`);
+    }
+    if (pageSize !== undefined && pageSize !== null) {
+      params.push(`pageSize=${pageSize}`);
+    }
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+    return this.http.get<{data: any[], totalCount: number, page: number, pageSize: number}>(url);
   }
 
   getEntityById(entityName: string, id: string): Observable<any> {

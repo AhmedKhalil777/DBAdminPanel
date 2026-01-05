@@ -44,9 +44,9 @@ namespace DBAdminPanel.SourceGenerator
 
             GenerateJsonConverter(context);
             GenerateMetadataClasses(context, allDbContextEntities);
-            GenerateEntityController(context, allDbContextEntities);
-            GenerateMetadataController(context, allDbContextEntities);
-            GenerateDashboardController(context, allDbContextEntities);
+            GenerateEntityEndpoints(context, allDbContextEntities);
+            GenerateMetadataEndpoints(context, allDbContextEntities);
+            GenerateDashboardEndpoints(context, allDbContextEntities);
         }
 
         private void GenerateJsonConverter(GeneratorExecutionContext context)
@@ -424,41 +424,23 @@ namespace DBAdminPanel.SourceGenerator
             return "text";
         }
 
-        private void GenerateEntityController(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
+        private void GenerateEntityEndpoints(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
         {
-            // Generate one controller per entity
-            foreach (var (dbContext, entities) in allEntities)
-            {
-                foreach (var entity in entities)
-                {
-                    GenerateSingleEntityController(context, entity, dbContext);
-                }
-            }
-        }
-
-        private void GenerateSingleEntityController(GeneratorExecutionContext context, EntityInfo entity, INamedTypeSymbol dbContext)
-        {
+            // Generate endpoint mapping methods for all entities
             var sb = new StringBuilder();
-            sb.AppendLine("using Microsoft.AspNetCore.Mvc;");
+            sb.AppendLine("using Microsoft.AspNetCore.Builder;");
+            sb.AppendLine("using Microsoft.AspNetCore.Http;");
+            sb.AppendLine("using Microsoft.AspNetCore.Http.HttpResults;");
             sb.AppendLine("using Microsoft.EntityFrameworkCore;");
             sb.AppendLine("using System.Text.Json;");
             sb.AppendLine("using System.Text.Json.Serialization;");
-            sb.AppendLine("using System.Threading.Tasks;");
             sb.AppendLine("using System.Reflection;");
             sb.AppendLine();
-            sb.AppendLine("namespace DBAdminPanel.Generated.Controllers");
+            sb.AppendLine("namespace DBAdminPanel.Generated.Endpoints");
             sb.AppendLine("{");
-            sb.AppendLine($"    [Route(\"DBAdminPanel/{entity.Name}\")]");
-            sb.AppendLine($"    public class {entity.Name}DBAdminPanelController : Controller");
+            sb.AppendLine("    public static class EntityEndpoints");
             sb.AppendLine("    {");
-            sb.AppendLine("        private readonly IServiceProvider _serviceProvider;");
-            sb.AppendLine();
-            sb.AppendLine($"        public {entity.Name}DBAdminPanelController(IServiceProvider serviceProvider)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            _serviceProvider = serviceProvider;");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        private void NormalizeDateTimeProperties(object entity)");
+            sb.AppendLine("        private static void NormalizeDateTimeProperties(object entity)");
             sb.AppendLine("        {");
             sb.AppendLine("            if (entity == null) return;");
             sb.AppendLine("            var entityType = entity.GetType();");
@@ -488,230 +470,340 @@ namespace DBAdminPanel.SourceGenerator
             sb.AppendLine("            }");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        [HttpGet]");
-            sb.AppendLine("        [HttpGet(\"Index\")]");
-            sb.AppendLine("        public IActionResult Index()");
+
+            // Generate endpoint mapping method for each entity
+            foreach (var (dbContext, entities) in allEntities)
+            {
+                foreach (var entity in entities)
+                {
+                    GenerateSingleEntityEndpoints(sb, entity);
+                }
+            }
+
+            // Generate method to map all entity endpoints
+            sb.AppendLine("        public static void MapAllEntityEndpoints(this WebApplication app)");
             sb.AppendLine("        {");
-            sb.AppendLine($"            ViewData[\"EntityName\"] = \"{entity.Name}\";");
-            sb.AppendLine("            return View();");
+            foreach (var (dbContext, entities) in allEntities)
+            {
+                foreach (var entity in entities)
+                {
+                    sb.AppendLine($"            app.Map{entity.Name}Endpoints();");
+                }
+            }
             sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        [HttpGet(\"api\")]");
-            sb.AppendLine($"        public async Task<IActionResult> GetAll()");
+
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+
+            context.AddSource("EntityEndpoints.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        }
+
+        private void GenerateSingleEntityEndpoints(StringBuilder sb, EntityInfo entity)
+        {
+            sb.AppendLine($"        public static void Map{entity.Name}Endpoints(this WebApplication app)");
             sb.AppendLine("        {");
-            sb.AppendLine($"            var dbContext = _serviceProvider.GetService(typeof({entity.DbContextFullName})) as {entity.DbContextFullName};");
-            sb.AppendLine("            if (dbContext == null) return NotFound();");
-            sb.AppendLine($"            var entities = await dbContext.{entity.DbSetName}.ToListAsync();");
-            sb.AppendLine("            return Json(entities);");
-            sb.AppendLine("        }");
+            sb.AppendLine($"            var group = app.MapGroup(\"DBAdminPanel/{entity.Name}\");");
             sb.AppendLine();
-            sb.AppendLine("        [HttpGet(\"api/{id}\")]");
-            sb.AppendLine($"        public async Task<IActionResult> GetById(string id)");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            var dbContext = _serviceProvider.GetService(typeof({entity.DbContextFullName})) as {entity.DbContextFullName};");
-            sb.AppendLine("            if (dbContext == null) return NotFound();");
+            
+            // GET all (with pagination support)
+            sb.AppendLine("            group.MapGet(\"api\", async (");
+            sb.AppendLine($"                {entity.DbContextFullName} dbContext, int? page = null, int? pageSize = null) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine($"                var query = dbContext.{entity.DbSetName}.AsQueryable();");
+            sb.AppendLine("                var totalCount = await query.CountAsync();");
+            sb.AppendLine("                ");
+            sb.AppendLine("                if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    var skip = (page.Value - 1) * pageSize.Value;");
+            sb.AppendLine("                    query = query.Skip(skip).Take(pageSize.Value);");
+            sb.AppendLine("                }");
+            sb.AppendLine("                ");
+            sb.AppendLine("                var entities = await query.ToListAsync();");
+            sb.AppendLine("                ");
+            sb.AppendLine("                return Results.Json(new {");
+            sb.AppendLine("                    data = entities,");
+            sb.AppendLine("                    totalCount = totalCount,");
+            sb.AppendLine("                    page = page ?? 1,");
+            sb.AppendLine("                    pageSize = pageSize ?? totalCount");
+            sb.AppendLine("                }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });");
+            sb.AppendLine("            });");
+            sb.AppendLine();
+
+            // GET by id
+            sb.AppendLine("            group.MapGet(\"api/{id}\", async (");
+            sb.AppendLine($"                string id, {entity.DbContextFullName} dbContext) =>");
+            sb.AppendLine("            {");
             
             // Parse key based on type
             if (entity.KeyPropertyType.Contains("int") && !entity.KeyPropertyType.Contains("long"))
             {
-                sb.AppendLine("            var key = int.Parse(id);");
+                sb.AppendLine("                if (!int.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
             }
             else if (entity.KeyPropertyType.Contains("long"))
             {
-                sb.AppendLine("            var key = long.Parse(id);");
+                sb.AppendLine("                if (!long.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
             }
             else if (entity.KeyPropertyType.Contains("Guid"))
             {
-                sb.AppendLine("            var key = System.Guid.Parse(id);");
+                sb.AppendLine("                if (!System.Guid.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
             }
             else
             {
-                sb.AppendLine($"            var key = System.Convert.ChangeType(id, typeof({entity.KeyPropertyType}));");
+                sb.AppendLine($"                object key;");
+                sb.AppendLine("                try");
+                sb.AppendLine("                {");
+                sb.AppendLine($"                    key = System.Convert.ChangeType(id, typeof({entity.KeyPropertyType}));");
+                sb.AppendLine("                }");
+                sb.AppendLine("                catch");
+                sb.AppendLine("                {");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+                sb.AppendLine("                }");
             }
             
-            sb.AppendLine($"            var entity = await dbContext.{entity.DbSetName}.FindAsync(key);");
-            sb.AppendLine("            if (entity == null) return NotFound();");
-            sb.AppendLine("            return Json(entity);");
-            sb.AppendLine("        }");
+            sb.AppendLine($"                var entity = await dbContext.{entity.DbSetName}.FindAsync(key);");
+            sb.AppendLine("                if (entity == null) return Results.NotFound();");
+            sb.AppendLine("                return Results.Json(entity);");
+            sb.AppendLine("            });");
             sb.AppendLine();
-            sb.AppendLine("        [HttpPost(\"api\")]");
-            sb.AppendLine($"        public async Task<IActionResult> Create([FromBody] JsonElement data)");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            var dbContext = _serviceProvider.GetService(typeof({entity.DbContextFullName})) as {entity.DbContextFullName};");
-            sb.AppendLine("            if (dbContext == null) return NotFound();");
-            sb.AppendLine("            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };");
-            sb.AppendLine("            options.Converters.Add(new StringToNumberConverter());");
-            sb.AppendLine($"            var entity = JsonSerializer.Deserialize<{entity.FullName}>(data.GetRawText(), options);");
-            sb.AppendLine("            if (entity == null) return BadRequest();");
-            sb.AppendLine("            NormalizeDateTimeProperties(entity);");
-            sb.AppendLine($"            dbContext.{entity.DbSetName}.Add(entity);");
-            sb.AppendLine("            await dbContext.SaveChangesAsync();");
-            sb.AppendLine("            return Ok(entity);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        [HttpPut(\"api/{id}\")]");
-            sb.AppendLine($"        public async Task<IActionResult> Update(string id, [FromBody] JsonElement data)");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            var dbContext = _serviceProvider.GetService(typeof({entity.DbContextFullName})) as {entity.DbContextFullName};");
-            sb.AppendLine("            if (dbContext == null) return NotFound();");
-            
-            // Parse key
-            if (entity.KeyPropertyType.Contains("int") && !entity.KeyPropertyType.Contains("long"))
-            {
-                sb.AppendLine("            var key = int.Parse(id);");
-            }
-            else if (entity.KeyPropertyType.Contains("long"))
-            {
-                sb.AppendLine("            var key = long.Parse(id);");
-            }
-            else if (entity.KeyPropertyType.Contains("Guid"))
-            {
-                sb.AppendLine("            var key = System.Guid.Parse(id);");
-            }
-            else
-            {
-                sb.AppendLine($"            var key = System.Convert.ChangeType(id, typeof({entity.KeyPropertyType}));");
-            }
-            
-            sb.AppendLine($"            var existingEntity = await dbContext.{entity.DbSetName}.FindAsync(key);");
-            sb.AppendLine("            if (existingEntity == null) return NotFound();");
-            sb.AppendLine("            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };");
-            sb.AppendLine("            options.Converters.Add(new StringToNumberConverter());");
-            sb.AppendLine($"            var updatedEntity = JsonSerializer.Deserialize<{entity.FullName}>(data.GetRawText(), options);");
-            sb.AppendLine("            if (updatedEntity == null) return BadRequest();");
-            sb.AppendLine("            NormalizeDateTimeProperties(updatedEntity);");
-            sb.AppendLine("            dbContext.Entry(existingEntity).CurrentValues.SetValues(updatedEntity);");
-            sb.AppendLine("            await dbContext.SaveChangesAsync();");
-            sb.AppendLine("            return Ok(existingEntity);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        [HttpDelete(\"api/{id}\")]");
-            sb.AppendLine($"        public async Task<IActionResult> Delete(string id)");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            var dbContext = _serviceProvider.GetService(typeof({entity.DbContextFullName})) as {entity.DbContextFullName};");
-            sb.AppendLine("            if (dbContext == null) return NotFound();");
-            
-            // Parse key
-            if (entity.KeyPropertyType.Contains("int") && !entity.KeyPropertyType.Contains("long"))
-            {
-                sb.AppendLine("            var key = int.Parse(id);");
-            }
-            else if (entity.KeyPropertyType.Contains("long"))
-            {
-                sb.AppendLine("            var key = long.Parse(id);");
-            }
-            else if (entity.KeyPropertyType.Contains("Guid"))
-            {
-                sb.AppendLine("            var key = System.Guid.Parse(id);");
-            }
-            else
-            {
-                sb.AppendLine($"            var key = System.Convert.ChangeType(id, typeof({entity.KeyPropertyType}));");
-            }
-            
-            sb.AppendLine($"            var entity = await dbContext.{entity.DbSetName}.FindAsync(key);");
-            sb.AppendLine("            if (entity == null) return NotFound();");
-            sb.AppendLine($"            dbContext.{entity.DbSetName}.Remove(entity);");
-            sb.AppendLine("            await dbContext.SaveChangesAsync();");
-            sb.AppendLine("            return Ok();");
-            sb.AppendLine("        }");
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
 
-            context.AddSource($"{entity.Name}DBAdminPanelController.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+            // POST create
+            sb.AppendLine("            group.MapPost(\"api\", async (");
+            sb.AppendLine($"                System.Text.Json.JsonElement data, {entity.DbContextFullName} dbContext) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };");
+            sb.AppendLine("                options.Converters.Add(new DBAdminPanel.Generated.Controllers.StringToNumberConverter());");
+            sb.AppendLine($"                var entity = JsonSerializer.Deserialize<{entity.FullName}>(data.GetRawText(), options);");
+            sb.AppendLine("                if (entity == null) return Results.BadRequest(\"Invalid entity data\");");
+            sb.AppendLine("                NormalizeDateTimeProperties(entity);");
+            sb.AppendLine($"                dbContext.{entity.DbSetName}.Add(entity);");
+            sb.AppendLine("                await dbContext.SaveChangesAsync();");
+            sb.AppendLine("                return Results.Ok(entity);");
+            sb.AppendLine("            });");
+            sb.AppendLine();
+
+            // PUT update
+            sb.AppendLine("            group.MapPut(\"api/{id}\", async (");
+            sb.AppendLine($"                string id, System.Text.Json.JsonElement data, {entity.DbContextFullName} dbContext) =>");
+            sb.AppendLine("            {");
+            
+            // Parse key
+            if (entity.KeyPropertyType.Contains("int") && !entity.KeyPropertyType.Contains("long"))
+            {
+                sb.AppendLine("                if (!int.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+            }
+            else if (entity.KeyPropertyType.Contains("long"))
+            {
+                sb.AppendLine("                if (!long.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+            }
+            else if (entity.KeyPropertyType.Contains("Guid"))
+            {
+                sb.AppendLine("                if (!System.Guid.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+            }
+            else
+            {
+                sb.AppendLine($"                object key;");
+                sb.AppendLine("                try");
+                sb.AppendLine("                {");
+                sb.AppendLine($"                    key = System.Convert.ChangeType(id, typeof({entity.KeyPropertyType}));");
+                sb.AppendLine("                }");
+                sb.AppendLine("                catch");
+                sb.AppendLine("                {");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+                sb.AppendLine("                }");
+            }
+            
+            sb.AppendLine($"                var existingEntity = await dbContext.{entity.DbSetName}.FindAsync(key);");
+            sb.AppendLine("                if (existingEntity == null) return Results.NotFound();");
+            sb.AppendLine("                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };");
+            sb.AppendLine("                options.Converters.Add(new DBAdminPanel.Generated.Controllers.StringToNumberConverter());");
+            sb.AppendLine($"                var updatedEntity = JsonSerializer.Deserialize<{entity.FullName}>(data.GetRawText(), options);");
+            sb.AppendLine("                if (updatedEntity == null) return Results.BadRequest(\"Invalid entity data\");");
+            sb.AppendLine("                NormalizeDateTimeProperties(updatedEntity);");
+            sb.AppendLine("                dbContext.Entry(existingEntity).CurrentValues.SetValues(updatedEntity);");
+            sb.AppendLine("                await dbContext.SaveChangesAsync();");
+            sb.AppendLine("                return Results.Ok(existingEntity);");
+            sb.AppendLine("            });");
+            sb.AppendLine();
+
+            // DELETE
+            sb.AppendLine("            group.MapDelete(\"api/{id}\", async (");
+            sb.AppendLine($"                string id, {entity.DbContextFullName} dbContext) =>");
+            sb.AppendLine("            {");
+            
+            // Parse key
+            if (entity.KeyPropertyType.Contains("int") && !entity.KeyPropertyType.Contains("long"))
+            {
+                sb.AppendLine("                if (!int.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+            }
+            else if (entity.KeyPropertyType.Contains("long"))
+            {
+                sb.AppendLine("                if (!long.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+            }
+            else if (entity.KeyPropertyType.Contains("Guid"))
+            {
+                sb.AppendLine("                if (!System.Guid.TryParse(id, out var key))");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+            }
+            else
+            {
+                sb.AppendLine($"                object key;");
+                sb.AppendLine("                try");
+                sb.AppendLine("                {");
+                sb.AppendLine($"                    key = System.Convert.ChangeType(id, typeof({entity.KeyPropertyType}));");
+                sb.AppendLine("                }");
+                sb.AppendLine("                catch");
+                sb.AppendLine("                {");
+                sb.AppendLine("                    return Results.BadRequest(\"Invalid ID format\");");
+                sb.AppendLine("                }");
+            }
+            
+            sb.AppendLine($"                var entity = await dbContext.{entity.DbSetName}.FindAsync(key);");
+            sb.AppendLine("                if (entity == null) return Results.NotFound();");
+            sb.AppendLine($"                dbContext.{entity.DbSetName}.Remove(entity);");
+            sb.AppendLine("                await dbContext.SaveChangesAsync();");
+            sb.AppendLine("                return Results.Ok();");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
+            sb.AppendLine();
         }
 
 
-        private void GenerateMetadataController(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
+        private void GenerateMetadataEndpoints(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("using Microsoft.AspNetCore.Mvc;");
+            sb.AppendLine("using Microsoft.AspNetCore.Builder;");
+            sb.AppendLine("using Microsoft.AspNetCore.Http;");
             sb.AppendLine("using System.Linq;");
             sb.AppendLine("using DBAdminPanel.Generated;");
             sb.AppendLine();
-            sb.AppendLine("namespace DBAdminPanel.Generated.Controllers");
+            sb.AppendLine("namespace DBAdminPanel.Generated.Endpoints");
             sb.AppendLine("{");
-            sb.AppendLine("    [Route(\"DBAdminPanel/api\")]");
-            sb.AppendLine("    [ApiController]");
-            sb.AppendLine("    public class MetaDataController : ControllerBase");
+            sb.AppendLine("    public static class MetadataEndpoints");
             sb.AppendLine("    {");
-            sb.AppendLine("        [HttpGet(\"metadata\")]");
-            sb.AppendLine("        [HttpGet(\"entities\")]");
-            sb.AppendLine("        public IActionResult GetAllMetadata()");
+            sb.AppendLine("        public static void MapMetadataEndpoints(this WebApplication app)");
             sb.AppendLine("        {");
-            sb.AppendLine("            var entities = EntityMetadata.GetAllEntities();");
-            sb.AppendLine("            return Ok(entities.Select(e => new");
-            sb.AppendLine("            {");
-            sb.AppendLine("                name = e.Name,");
-            sb.AppendLine("                fullName = e.FullName,");
-            sb.AppendLine("                dbSetName = e.DbSetName,");
-            sb.AppendLine("                keyProperty = e.KeyProperty,");
-            sb.AppendLine("                dbContextName = e.DbContextName,");
-            sb.AppendLine("                dbContextFullName = e.DbContextFullName,");
-            sb.AppendLine("                properties = e.Properties,");
-            sb.AppendLine("                apiEndpoints = e.ApiEndpoints");
-            sb.AppendLine("            }));");
-            sb.AppendLine("        }");
+            sb.AppendLine("            var group = app.MapGroup(\"DBAdminPanel/api\");");
             sb.AppendLine();
-            sb.AppendLine("        [HttpGet(\"metadata/{entityName}\")]");
-            sb.AppendLine("        [HttpGet(\"entities/{entityName}/metadata\")]");
-            sb.AppendLine("        public IActionResult GetEntityMetadata(string entityName)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            var metadata = EntityMetadata.GetEntityMetadata(entityName);");
-            sb.AppendLine("            if (metadata == null) return NotFound();");
-            sb.AppendLine("            return Ok(new");
+            sb.AppendLine("            group.MapGet(\"metadata\", () =>");
             sb.AppendLine("            {");
-            sb.AppendLine("                name = metadata.Name,");
-            sb.AppendLine("                fullName = metadata.FullName,");
-            sb.AppendLine("                dbSetName = metadata.DbSetName,");
-            sb.AppendLine("                keyProperty = metadata.KeyProperty,");
-            sb.AppendLine("                dbContextName = metadata.DbContextName,");
-            sb.AppendLine("                dbContextFullName = metadata.DbContextFullName,");
-            sb.AppendLine("                properties = metadata.Properties,");
-            sb.AppendLine("                apiEndpoints = metadata.ApiEndpoints");
+            sb.AppendLine("                var entities = EntityMetadata.GetAllEntities();");
+            sb.AppendLine("                return Results.Ok(entities.Select(e => new");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    name = e.Name,");
+            sb.AppendLine("                    fullName = e.FullName,");
+            sb.AppendLine("                    dbSetName = e.DbSetName,");
+            sb.AppendLine("                    keyProperty = e.KeyProperty,");
+            sb.AppendLine("                    dbContextName = e.DbContextName,");
+            sb.AppendLine("                    dbContextFullName = e.DbContextFullName,");
+            sb.AppendLine("                    properties = e.Properties,");
+            sb.AppendLine("                    apiEndpoints = e.ApiEndpoints");
+            sb.AppendLine("                }));");
+            sb.AppendLine("            });");
+            sb.AppendLine();
+            sb.AppendLine("            group.MapGet(\"entities\", () =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var entities = EntityMetadata.GetAllEntities();");
+            sb.AppendLine("                return Results.Ok(entities.Select(e => new");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    name = e.Name,");
+            sb.AppendLine("                    fullName = e.FullName,");
+            sb.AppendLine("                    dbSetName = e.DbSetName,");
+            sb.AppendLine("                    keyProperty = e.KeyProperty,");
+            sb.AppendLine("                    dbContextName = e.DbContextName,");
+            sb.AppendLine("                    dbContextFullName = e.DbContextFullName,");
+            sb.AppendLine("                    properties = e.Properties,");
+            sb.AppendLine("                    apiEndpoints = e.ApiEndpoints");
+            sb.AppendLine("                }));");
+            sb.AppendLine("            });");
+            sb.AppendLine();
+            sb.AppendLine("            group.MapGet(\"metadata/{entityName}\", (string entityName) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var metadata = EntityMetadata.GetEntityMetadata(entityName);");
+            sb.AppendLine("                if (metadata == null) return Results.NotFound();");
+            sb.AppendLine("                return Results.Ok(new");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    name = metadata.Name,");
+            sb.AppendLine("                    fullName = metadata.FullName,");
+            sb.AppendLine("                    dbSetName = metadata.DbSetName,");
+            sb.AppendLine("                    keyProperty = metadata.KeyProperty,");
+            sb.AppendLine("                    dbContextName = metadata.DbContextName,");
+            sb.AppendLine("                    dbContextFullName = metadata.DbContextFullName,");
+            sb.AppendLine("                    properties = metadata.Properties,");
+            sb.AppendLine("                    apiEndpoints = metadata.ApiEndpoints");
+            sb.AppendLine("                });");
+            sb.AppendLine("            });");
+            sb.AppendLine();
+            sb.AppendLine("            group.MapGet(\"entities/{entityName}/metadata\", (string entityName) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var metadata = EntityMetadata.GetEntityMetadata(entityName);");
+            sb.AppendLine("                if (metadata == null) return Results.NotFound();");
+            sb.AppendLine("                return Results.Ok(new");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    name = metadata.Name,");
+            sb.AppendLine("                    fullName = metadata.FullName,");
+            sb.AppendLine("                    dbSetName = metadata.DbSetName,");
+            sb.AppendLine("                    keyProperty = metadata.KeyProperty,");
+            sb.AppendLine("                    dbContextName = metadata.DbContextName,");
+            sb.AppendLine("                    dbContextFullName = metadata.DbContextFullName,");
+            sb.AppendLine("                    properties = metadata.Properties,");
+            sb.AppendLine("                    apiEndpoints = metadata.ApiEndpoints");
+            sb.AppendLine("                });");
             sb.AppendLine("            });");
             sb.AppendLine("        }");
             sb.AppendLine("    }");
             sb.AppendLine("}");
 
-            context.AddSource("MetadataController.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+            context.AddSource("MetadataEndpoints.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
 
-        private void GenerateDashboardController(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
+        private void GenerateDashboardEndpoints(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("using Microsoft.AspNetCore.Mvc;");
-            sb.AppendLine("using DBAdminPanel.Generated;");
+            sb.AppendLine("using Microsoft.AspNetCore.Builder;");
+            sb.AppendLine("using Microsoft.AspNetCore.Http;");
             sb.AppendLine();
-            sb.AppendLine("namespace DBAdminPanel.Generated.Controllers");
+            sb.AppendLine("namespace DBAdminPanel.Generated.Endpoints");
             sb.AppendLine("{");
-            sb.AppendLine("    [Route(\"DBAdminPanel\")]");
-            sb.AppendLine("    public class DashboardController : Controller");
+            sb.AppendLine("    public static class DashboardEndpoints");
             sb.AppendLine("    {");
-            sb.AppendLine("        private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env;");
-            sb.AppendLine();
-            sb.AppendLine("        public DashboardController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)");
+            sb.AppendLine("        public static void MapDashboardEndpoints(this WebApplication app)");
             sb.AppendLine("        {");
-            sb.AppendLine("            _env = env;");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        [HttpGet]");
-            sb.AppendLine("        [HttpGet(\"Index\")]");
-            sb.AppendLine("        public IActionResult Index()");
-            sb.AppendLine("        {");
-            sb.AppendLine("            var webRootPath = _env.WebRootPath ?? System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), \"wwwroot\");");
-            sb.AppendLine("            // Files are copied to wwwroot root during build (from browser subdirectory)");
-            sb.AppendLine("            var indexPath = System.IO.Path.Combine(webRootPath, \"index.html\");");
-            sb.AppendLine("            if (System.IO.File.Exists(indexPath))");
+            sb.AppendLine("            app.MapGet(\"DBAdminPanel\", (Microsoft.AspNetCore.Hosting.IWebHostEnvironment env) =>");
             sb.AppendLine("            {");
-            sb.AppendLine("                return PhysicalFile(indexPath, \"text/html\");");
-            sb.AppendLine("            }");
-            sb.AppendLine("            return NotFound(\"Angular app not found. Please build the Angular application.\");");
+            sb.AppendLine("                var webRootPath = env.WebRootPath ?? System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), \"wwwroot\");");
+            sb.AppendLine("                // Files are copied to wwwroot root during build (from browser subdirectory)");
+            sb.AppendLine("                var indexPath = System.IO.Path.Combine(webRootPath, \"index.html\");");
+            sb.AppendLine("                if (System.IO.File.Exists(indexPath))");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    return Results.File(indexPath, \"text/html\");");
+            sb.AppendLine("                }");
+            sb.AppendLine("                return Results.NotFound(\"Angular app not found. Please build the Angular application.\");");
+            sb.AppendLine("            });");
+            sb.AppendLine();
+            sb.AppendLine("            app.MapGet(\"DBAdminPanel/Index\", (Microsoft.AspNetCore.Hosting.IWebHostEnvironment env) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var webRootPath = env.WebRootPath ?? System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), \"wwwroot\");");
+            sb.AppendLine("                // Files are copied to wwwroot root during build (from browser subdirectory)");
+            sb.AppendLine("                var indexPath = System.IO.Path.Combine(webRootPath, \"index.html\");");
+            sb.AppendLine("                if (System.IO.File.Exists(indexPath))");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    return Results.File(indexPath, \"text/html\");");
+            sb.AppendLine("                }");
+            sb.AppendLine("                return Results.NotFound(\"Angular app not found. Please build the Angular application.\");");
+            sb.AppendLine("            });");
             sb.AppendLine("        }");
             sb.AppendLine("    }");
             sb.AppendLine("}");
 
-            context.AddSource("DashboardController.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+            context.AddSource("DashboardEndpoints.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
     }
 

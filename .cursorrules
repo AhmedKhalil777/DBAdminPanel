@@ -1,0 +1,306 @@
+# Cursor Rules for DBAdminPanel Project
+
+## Angular (TypeScript) Guidelines
+
+### Signals and Modern Angular Patterns (Angular 19+)
+
+#### Component Architecture
+- **ALWAYS use standalone components** - Set `standalone: true` in all components
+- **PREFER signals over @Input/@Output** - Use `input()`, `output()`, and `model()` signals instead of decorators
+- **Use `inject()` function** - Replace constructor injection with `inject()` function
+- **Use `computed()` for derived state** - Create computed signals for values derived from other signals
+- **Use `effect()` for side effects** - Use effects instead of lifecycle hooks when appropriate
+- **Avoid `OnInit`, `OnDestroy`** - Use `effect()` with cleanup functions or signals lifecycle
+
+#### Signal Patterns
+```typescript
+// ✅ GOOD: Modern signal-based component
+@Component({
+  selector: 'app-example',
+  standalone: true,
+  imports: [CommonModule],
+  template: `...`
+})
+export class ExampleComponent {
+  // Use input() signal instead of @Input()
+  name = input.required<string>();
+  optionalValue = input<string>('default');
+  
+  // Use output() signal instead of @Output()
+  save = output<string>();
+  
+  // Use model() for two-way binding
+  value = model<string>('');
+  
+  // Use inject() instead of constructor injection
+  private apiService = inject(ApiService);
+  private router = inject(Router);
+  
+  // Use computed() for derived values
+  displayName = computed(() => this.name().toUpperCase());
+  
+  // Use effect() for side effects
+  constructor() {
+    effect(() => {
+      console.log('Name changed:', this.name());
+    });
+  }
+}
+```
+
+#### Service Patterns
+- **Use `inject()` in services** - Services should use `inject()` for dependencies
+- **Return signals or observables** - Prefer signals for reactive state, observables for async operations
+- **Use `toSignal()` and `toObservable()`** - Convert between signals and observables when needed
+
+```typescript
+// ✅ GOOD: Modern service with signals
+@Injectable({ providedIn: 'root' })
+export class DataService {
+  private http = inject(HttpClient);
+  
+  // Use signals for reactive state
+  private dataSignal = signal<any[]>([]);
+  data = this.dataSignal.asReadonly();
+  
+  // Use computed for derived state
+  dataCount = computed(() => this.data().length);
+  
+  loadData(): Observable<any[]> {
+    return this.http.get<any[]>('/api/data').pipe(
+      tap(data => this.dataSignal.set(data))
+    );
+  }
+}
+```
+
+#### Template Syntax
+- **Use signal syntax in templates** - Access signals with `()`: `{{ name() }}`
+- **Use `@if`, `@for`, `@switch`** - Use new control flow syntax instead of `*ngIf`, `*ngFor`
+- **Use `@defer` for lazy loading** - Use `@defer` blocks for performance optimization
+
+```html
+<!-- ✅ GOOD: Modern template syntax -->
+<div>
+  @if (isLoading()) {
+    <p>Loading...</p>
+  } @else {
+    @for (item of items(); track item.id) {
+      <div>{{ item.name }}</div>
+    } @empty {
+      <p>No items found</p>
+    }
+  }
+</div>
+
+@defer (on viewport) {
+  <heavy-component />
+}
+```
+
+#### Forms with Signals
+- **Use `FormBuilder` with signals** - Combine reactive forms with signals
+- **Use `toSignal()` for form values** - Convert form value changes to signals
+- **Use `model()` for two-way binding** - Prefer `model()` over `[(ngModel)]`
+
+#### RxJS Integration
+- **Use `toSignal()` for observables** - Convert HTTP observables to signals
+- **Use `toObservable()` for signals** - Convert signals to observables when needed
+- **Prefer signals for local state** - Use signals for component state, observables for async operations
+
+```typescript
+// ✅ GOOD: Converting observables to signals
+export class DataComponent {
+  private apiService = inject(ApiService);
+  
+  // Convert observable to signal with initial value
+  data = toSignal(this.apiService.getData(), { initialValue: [] });
+  
+  // Use computed with signal
+  filteredData = computed(() => 
+    this.data().filter(item => item.active)
+  );
+}
+```
+
+### TypeScript Best Practices
+- **Use strict mode** - Always enable strict TypeScript settings
+- **Prefer interfaces over types** - Use interfaces for object shapes, types for unions/intersections
+- **Use readonly for immutable data** - Mark arrays and objects as readonly when appropriate
+- **Avoid `any`** - Use `unknown` or proper types instead
+- **Use type guards** - Create type guards for runtime type checking
+- **Prefer const assertions** - Use `as const` for literal types
+
+### Angular Material
+- **Import only needed modules** - Import specific Material modules, not the entire library
+- **Use standalone Material components** - Prefer standalone Material components when available
+- **Follow Material Design guidelines** - Use Material components consistently
+
+### File Organization
+- **One component per file** - Each component, service, pipe, directive in its own file
+- **Use barrel exports** - Create `index.ts` files for clean imports
+- **Group by feature** - Organize files by feature, not by type
+- **Naming conventions**:
+  - Components: `kebab-case.component.ts`
+  - Services: `kebab-case.service.ts`
+  - Interfaces: `PascalCase.ts` or `kebab-case.interface.ts`
+  - Constants: `UPPER_SNAKE_CASE.ts`
+
+## .NET (C#) Guidelines
+
+### Modern C# Patterns (.NET 8+)
+
+#### Code Style
+- **Use file-scoped namespaces** - Prefer `namespace DBAdminPanel;` over block-scoped
+- **Use primary constructors** - Use primary constructors for classes (C# 12)
+- **Use collection expressions** - Use `[]` for arrays, `[..]` for collections
+- **Use string interpolation** - Prefer `$"text {variable}"` over concatenation
+- **Use pattern matching** - Use pattern matching with `is`, `switch` expressions
+- **Use nullable reference types** - Enable nullable reference types and use `?` appropriately
+
+```csharp
+// ✅ GOOD: Modern C# patterns
+namespace DBAdminPanel;
+
+public class ExampleService(ILogger<ExampleService> logger)
+{
+    public string ProcessData(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+            
+        return input switch
+        {
+            { Length: > 100 } => input[..100],
+            _ => input
+        };
+    }
+}
+```
+
+#### ASP.NET Core Best Practices
+- **Use minimal APIs** - Prefer minimal APIs over controllers when appropriate
+- **Use extension methods** - Create extension methods for service registration
+- **Use dependency injection** - Register services in `Program.cs` or extension methods
+- **Use options pattern** - Use `IOptions<T>` for configuration
+- **Use result types** - Consider using `Result<T>` or `IResult` for better error handling
+
+```csharp
+// ✅ GOOD: Minimal API with dependency injection
+app.MapGet("/api/entities", async (
+    IEntityService service,
+    int? page = 1,
+    int? pageSize = 10) =>
+{
+    var result = await service.GetEntitiesAsync(page ?? 1, pageSize ?? 10);
+    return Results.Ok(result);
+})
+.WithName("GetEntities")
+.Produces<EntityResult>(StatusCodes.Status200OK);
+```
+
+#### Entity Framework Core
+- **Use DbContext pooling** - Enable DbContext pooling for better performance
+- **Use async/await** - Always use async methods for database operations
+- **Use compiled queries** - Use compiled queries for frequently executed queries
+- **Use value converters** - Use value converters for complex types
+- **Use owned entities** - Use owned entities for value objects
+
+```csharp
+// ✅ GOOD: Modern EF Core patterns
+public class EntityService(DbContext context)
+{
+    public async Task<List<Entity>> GetEntitiesAsync(int page, int pageSize)
+    {
+        return await context.Set<Entity>()
+            .AsNoTracking()
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+}
+```
+
+#### Error Handling
+- **Use global exception handler** - Implement global exception handling middleware
+- **Use ProblemDetails** - Return `ProblemDetails` for API errors
+- **Use result types** - Consider using `Result<T>` pattern for operations
+- **Log exceptions** - Always log exceptions with appropriate levels
+
+#### Performance
+- **Use async/await** - Always use async for I/O operations
+- **Use IMemoryCache** - Cache frequently accessed data
+- **Use response compression** - Enable response compression
+- **Use pagination** - Always paginate large result sets
+- **Use AsNoTracking** - Use `AsNoTracking()` for read-only queries
+
+### Naming Conventions
+- **Classes**: `PascalCase`
+- **Methods**: `PascalCase`
+- **Properties**: `PascalCase`
+- **Fields**: `_camelCase` (private), `camelCase` (public)
+- **Parameters**: `camelCase`
+- **Constants**: `PascalCase` or `UPPER_SNAKE_CASE`
+- **Interfaces**: `IPascalCase` (prefix with `I`)
+- **Files**: Match class name
+
+### File Organization
+- **One class per file** - Each class in its own file
+- **Group by feature** - Organize by feature/domain, not by type
+- **Use folders for organization** - Use folders for related classes
+- **Extensions in separate folder** - Put extension methods in `Extensions` folder
+
+## General Guidelines
+
+### Code Quality
+- **Write self-documenting code** - Use descriptive names, avoid comments for obvious code
+- **Keep methods small** - Methods should do one thing well
+- **Avoid deep nesting** - Prefer early returns and guard clauses
+- **Use meaningful names** - Variable and method names should clearly express intent
+- **Remove unused code** - Delete commented-out code and unused imports
+
+### Git Practices
+- **Write clear commit messages** - Use conventional commits format
+- **Small, focused commits** - Make atomic commits
+- **Review before committing** - Review diffs before committing
+
+### Testing
+- **Write unit tests** - Test business logic and services
+- **Use descriptive test names** - Test names should describe what they test
+- **Test edge cases** - Test null, empty, and boundary conditions
+- **Mock external dependencies** - Mock HTTP calls, database, etc.
+
+### Documentation
+- **Document public APIs** - Use XML comments for public methods and classes
+- **Keep README updated** - Update README with setup and usage instructions
+- **Document complex logic** - Add comments for non-obvious business logic
+
+## Project-Specific Conventions
+
+### Angular Frontend
+- **Base URL**: `/DBAdminPanel` - All API calls use this base path
+- **Standalone components**: All components must be standalone
+- **Material Design**: Use Angular Material for UI components
+- **Reactive Forms**: Use reactive forms with FormBuilder
+
+### .NET Backend
+- **Extension methods**: Use extension methods for service registration (`AddDBAdminPanel`, `UseDBAdminPanel`)
+- **Minimal APIs**: Prefer minimal APIs for endpoints
+- **Case-insensitive routes**: Routes are configured to be case-insensitive
+- **Static files**: Serve static files from `wwwroot` at `/DBAdminPanel` path
+
+### API Design
+- **RESTful conventions**: Follow REST conventions for endpoints
+- **Pagination**: Always support pagination for list endpoints
+- **Error responses**: Return consistent error response format
+- **Metadata endpoints**: Provide metadata endpoints for entity information
+
+## When Creating New Code
+
+1. **Angular Components**: Use signals, `inject()`, standalone components, new control flow
+2. **Angular Services**: Use `inject()`, return signals or observables, use `toSignal()`/`toObservable()`
+3. **.NET Services**: Use primary constructors, async/await, dependency injection
+4. **.NET APIs**: Use minimal APIs, return `IResult`, use ProblemDetails for errors
+5. **Both**: Follow naming conventions, organize by feature, write tests
+
+

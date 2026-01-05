@@ -70,3 +70,4 @@ The DBAdminPanel source generator automatically creates controllers at:
 
 Each controller provides full CRUD operations (Create, Read, Update, Delete).
 
+

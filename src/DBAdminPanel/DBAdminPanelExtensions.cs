@@ -9,13 +9,6 @@ namespace DBAdminPanel
     {
         public static IServiceCollection AddDBAdminPanel(this IServiceCollection services)
         {
-            var assembly = typeof(DBAdminPanelExtensions).Assembly;
-            
-            // Add the assembly as an application part so MVC can discover controllers
-            // Generated controllers will be in the consuming project and automatically discovered
-            services.AddControllers()
-                .AddApplicationPart(assembly);
-            
             // Make routes case-insensitive
             services.Configure<Microsoft.AspNetCore.Routing.RouteOptions>(options =>
             {
@@ -142,9 +135,62 @@ namespace DBAdminPanel
                 RequestPath = "/DBAdminPanel",
                 FileProvider = fileProvider
             });
-            // Overload for WebApplication (minimal hosting)
-            // Routing is typically configured via MapControllers/MapControllerRoute
+
+            // Map generated endpoints using reflection
+            MapGeneratedEndpoints(app);
+            
             return app;
+        }
+
+        private static void MapGeneratedEndpoints(WebApplication app)
+        {
+            // Find and call the generated endpoint mapping methods using reflection
+            var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
+            if (entryAssembly == null) return;
+
+            try
+            {
+                // Map entity endpoints
+                var entityEndpointsType = entryAssembly.GetType("DBAdminPanel.Generated.Endpoints.EntityEndpoints");
+                if (entityEndpointsType != null)
+                {
+                    var mapAllMethod = entityEndpointsType.GetMethod("MapAllEntityEndpoints", 
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    if (mapAllMethod != null)
+                    {
+                        mapAllMethod.Invoke(null, new object[] { app });
+                    }
+                }
+
+                // Map metadata endpoints
+                var metadataEndpointsType = entryAssembly.GetType("DBAdminPanel.Generated.Endpoints.MetadataEndpoints");
+                if (metadataEndpointsType != null)
+                {
+                    var mapMethod = metadataEndpointsType.GetMethod("MapMetadataEndpoints", 
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    if (mapMethod != null)
+                    {
+                        mapMethod.Invoke(null, new object[] { app });
+                    }
+                }
+
+                // Map dashboard endpoints
+                var dashboardEndpointsType = entryAssembly.GetType("DBAdminPanel.Generated.Endpoints.DashboardEndpoints");
+                if (dashboardEndpointsType != null)
+                {
+                    var mapMethod = dashboardEndpointsType.GetMethod("MapDashboardEndpoints", 
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    if (mapMethod != null)
+                    {
+                        mapMethod.Invoke(null, new object[] { app });
+                    }
+                }
+            }
+            catch (System.Exception)
+            {
+                // If reflection fails, endpoints may not be generated yet or assembly may not be loaded
+                // This is expected during development when source generation hasn't run yet
+            }
         }
     }
 }

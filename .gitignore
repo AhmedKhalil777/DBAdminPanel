@@ -132,3 +132,23 @@ Desktop.ini
 ## Source Generator output
 **/obj/**/DBAdminPanel.SourceGenerator/
 
+
+# Logs
+logs
+*.log
+dev-debug.log
+# Dependency directories
+# Environment variables
+.env
+# Editor directories and files
+.idea
+.vscode
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+
+# Task files
+tasks.json
+tasks/ 

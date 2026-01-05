@@ -77,3 +77,4 @@ The source generator:
 - Key properties are automatically detected (properties named "Id" or "{EntityName}Id", or properties with `[Key]` attribute)
 - All generated code is placed in the `DBAdminPanel.Generated` namespace
 
+
