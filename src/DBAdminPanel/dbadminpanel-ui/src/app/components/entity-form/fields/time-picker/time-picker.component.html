@@ -1,0 +1,22 @@
+<mat-form-field appearance="outline" class="time-picker-field">
+  <mat-label>{{ label }}</mat-label>
+  <input 
+    matInput 
+    [value]="getDisplayValue()"
+    [formControl]="formControl"
+    [placeholder]="placeholder"
+    readonly
+    (click)="openTimePicker()">
+  <button 
+    mat-icon-button 
+    matSuffix 
+    type="button"
+    (click)="openTimePicker()"
+    [disabled]="formControl.disabled"
+    class="time-picker-button">
+    <mat-icon>schedule</mat-icon>
+  </button>
+  <mat-icon matPrefix>schedule</mat-icon>
+  <mat-hint>Click to select time</mat-hint>
+</mat-form-field>
+

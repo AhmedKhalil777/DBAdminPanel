@@ -1,0 +1,14 @@
+<mat-form-field appearance="outline" class="full-width">
+  <mat-label>{{ property.name }}</mat-label>
+  <input 
+    matInput 
+    [matDatepicker]="picker"
+    [formControl]="getControl()"
+    [placeholder]="property.name"
+    readonly>
+  <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+  <mat-datepicker #picker></mat-datepicker>
+  <mat-icon matPrefix>calendar_today</mat-icon>
+  <mat-hint>Click calendar icon to select a date</mat-hint>
+</mat-form-field>
+

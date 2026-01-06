@@ -1,0 +1,95 @@
+<div class="diagram-container" [class.embedded]="hideToolbar()">
+  @if (!hideToolbar()) {
+    <mat-toolbar class="diagram-toolbar">
+      <mat-icon>schema</mat-icon>
+      <span class="toolbar-title">Database Models Diagram</span>
+      <span class="spacer"></span>
+      <button mat-icon-button (click)="refreshDiagram()" matTooltip="Refresh diagram">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </mat-toolbar>
+  }
+
+  <div class="diagram-content">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>Loading diagram data...</p>
+      </div>
+    } @else if (error()) {
+      <mat-card class="error-card">
+        <mat-card-content>
+          <mat-icon class="error-icon">error_outline</mat-icon>
+          <h3>Error Loading Diagram</h3>
+          <p>{{ error() }}</p>
+          <button mat-raised-button color="primary" (click)="refreshDiagram()">
+            <mat-icon>refresh</mat-icon>
+            Retry
+          </button>
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <div class="diagram-stats">
+        <mat-chip-set>
+          <mat-chip>
+            <mat-icon>table_chart</mat-icon>
+            {{ getTableCount() }} Tables
+          </mat-chip>
+          <mat-chip>
+            <mat-icon>link</mat-icon>
+            {{ getRelationCount() }} Relations
+          </mat-chip>
+        </mat-chip-set>
+      </div>
+
+      <mat-card class="diagram-card">
+        <mat-card-content>
+          @if (diagramData().length > 0) {
+            <div id="mermaid-diagram" class="mermaid-container"></div>
+          } @else {
+            <div class="no-data-message">
+              <mat-icon>info</mat-icon>
+              <p>No diagram data available. The endpoint returned an empty array.</p>
+              <p class="hint">Please check server logs to see why the diagram endpoint is not returning data.</p>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      @if (diagramData().length > 0) {
+        <div class="tables-info">
+          @for (table of diagramData(); track table.name) {
+            <mat-card class="table-info-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>table_chart</mat-icon>
+                  {{ table.name }}
+                </mat-card-title>
+                <mat-card-subtitle>
+                  {{ table.tableName }} • {{ table.dbContextName }}
+                </mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="table-details">
+                  <div class="detail-item" *ngIf="table.modelFilePath">
+                    <mat-icon>code</mat-icon>
+                    <span class="file-path">{{ table.modelFilePath }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <mat-icon>view_column</mat-icon>
+                    <span>{{ table.columns.length }} columns</span>
+                  </div>
+                  <div class="detail-item">
+                    <mat-icon>link</mat-icon>
+                    <span>{{ table.relations.length }} relations</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+    }
+  </div>
+</div>
+

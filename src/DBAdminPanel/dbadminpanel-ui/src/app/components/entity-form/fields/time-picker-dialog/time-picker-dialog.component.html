@@ -1,0 +1,58 @@
+<div class="time-picker-dialog">
+  <mat-card class="time-picker-card">
+    <mat-card-header>
+      <div mat-card-avatar class="time-picker-avatar">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <mat-card-title>Select Time</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="time-selectors">
+        <mat-form-field appearance="outline" class="time-select-field">
+          <mat-label>Hours</mat-label>
+          <mat-select [(ngModel)]="hours">
+            @for (hour of hoursList; track hour) {
+              <mat-option [value]="hour">{{ formatTime(hour) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="time-separator">:</div>
+
+        <mat-form-field appearance="outline" class="time-select-field">
+          <mat-label>Minutes</mat-label>
+          <mat-select [(ngModel)]="minutes">
+            @for (minute of minutesList; track minute) {
+              <mat-option [value]="minute">{{ formatTime(minute) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="selected-time">
+        <mat-icon>access_time</mat-icon>
+        <span>{{ formatTime(hours) }}:{{ formatTime(minutes) }}</span>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions class="time-picker-actions">
+      <button 
+        mat-stroked-button 
+        (click)="onCancel()"
+        class="cancel-button">
+        <mat-icon>cancel</mat-icon>
+        Cancel
+      </button>
+      <button 
+        mat-raised-button 
+        color="primary" 
+        (click)="onConfirm()"
+        class="confirm-button">
+        <mat-icon>check</mat-icon>
+        Confirm
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>
+

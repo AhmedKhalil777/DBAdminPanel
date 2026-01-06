@@ -1,0 +1,35 @@
+@if (isLoading()) {
+  <div class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>Loading entity...</p>
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon class="error-icon">error</mat-icon>
+    <h3>Error</h3>
+    <p>{{ error() }}</p>
+    <button mat-raised-button color="primary" routerLink="/">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Dashboard
+    </button>
+  </div>
+} @else if (entityMetadata()) {
+  <div class="entity-view-container">
+    <mat-tab-group class="entity-tabs">
+      <mat-tab label="Entity Data">
+        <div class="tab-content">
+          <app-entity-table [entityMetadata]="entityMetadata()!"></app-entity-table>
+        </div>
+      </mat-tab>
+      <mat-tab label="SQL Execution">
+        <div class="tab-content">
+          <app-sql-execution 
+            [dbContextName]="entityMetadata()!.dbContextName"
+            [entityMetadata]="entityMetadata()!">
+          </app-sql-execution>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+}
+

@@ -304,3 +304,4 @@ public class EntityService(DbContext context)
 5. **Both**: Follow naming conventions, organize by feature, write tests
 
 
+

@@ -1,0 +1,51 @@
+.datetime-field {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.full-width-row {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.datetime-field .date-field {
+  flex: 2;
+  min-width: 200px;
+}
+
+.datetime-field .time-field-wrapper {
+  flex: 1;
+  min-width: 180px;
+}
+
+.datetime-field .time-field-wrapper .time-field {
+  width: 100%;
+}
+
+.datetime-field ::ng-deep .mat-mdc-form-field {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.datetime-field ::ng-deep .mat-mdc-text-field-wrapper {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .datetime-field {
+    flex-direction: column;
+  }
+  
+  .datetime-field .date-field,
+  .datetime-field .time-field {
+    width: 100%;
+  }
+}
+

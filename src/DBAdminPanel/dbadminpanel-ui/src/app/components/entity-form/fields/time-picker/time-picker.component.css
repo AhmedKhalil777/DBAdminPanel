@@ -1,0 +1,16 @@
+.time-picker-field {
+  width: 100%;
+}
+
+.time-picker-button {
+  margin-right: -8px;
+}
+
+.time-picker-field input {
+  cursor: pointer;
+}
+
+.time-picker-field input:disabled {
+  cursor: not-allowed;
+}
+

@@ -2,7 +2,8 @@
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav 
       mode="side" 
-      [opened]="sidenavOpened"
+      [opened]="true"
+      [disableClose]="true"
       class="sidenav"
       [fixedInViewport]="true"
       [fixedTopGap]="64">
@@ -20,7 +21,7 @@
         <div class="dbcontext-selector" *ngIf="dbContexts.length > 1">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>DbContext</mat-label>
-            <mat-select [(ngModel)]="selectedDbContext" (selectionChange)="selectDbContext(selectedDbContext!)">
+            <mat-select [value]="selectedDbContext()" (selectionChange)="selectDbContext($event.value)">
               <mat-option [value]="null">All Contexts</mat-option>
               <mat-option *ngFor="let ctx of dbContexts" [value]="ctx">
                 {{ ctx }} ({{ getEntityCount(ctx) }})
@@ -30,28 +31,55 @@
         </div>
 
         <div class="entity-tree">
-          <div *ngFor="let dbContext of dbContexts" class="tree-group">
-            <div class="tree-group-header" *ngIf="dbContexts.length > 1">
-              <mat-chip-set>
-                <mat-chip>
-                  <mat-icon>storage</mat-icon>
-                  {{ dbContext }}
-                  <span class="chip-count">({{ getEntityCount(dbContext) }})</span>
-                </mat-chip>
-              </mat-chip-set>
-            </div>
-            <mat-nav-list class="tree-children">
-              <a 
-                mat-list-item
-                *ngFor="let entity of groupedMetadata[dbContext]" 
-                [class.active]="selectedEntity?.name === entity.name"
-                (click)="selectEntity(entity)"
-                class="entity-item">
-                <mat-icon matListItemIcon>table_chart</mat-icon>
-                <span matListItemTitle>{{ entity.name }}</span>
-                <span matListItemLine>{{ entity.properties.length }} properties</span>
-              </a>
-            </mat-nav-list>
+          <div class="tree-container">
+            @for (node of treeData(); track node.name) {
+              <div class="tree-node-wrapper">
+                <!-- DB Context Node (expandable) -->
+                @if (node.type === 'dbcontext' && node.children) {
+                  <div class="tree-node-container">
+                    <button 
+                      mat-icon-button 
+                      class="tree-toggle-button" 
+                      (click)="toggleNode(node); $event.stopPropagation()">
+                      <mat-icon class="expand-icon">
+                        {{ isExpanded(node) ? 'expand_more' : 'chevron_right' }}
+                      </mat-icon>
+                    </button>
+                    <mat-icon class="tree-icon">storage</mat-icon>
+                    <span 
+                      class="tree-node-label"
+                      [class.active]="isNodeSelected(node)"
+                      (click)="selectTreeNode(node); $event.stopPropagation()">
+                      {{ node.name }}
+                      @if (node.dbContext) {
+                        <span class="node-count">({{ getEntityCount(node.dbContext) }})</span>
+                      }
+                    </span>
+                  </div>
+                  
+                  <!-- Children (entities) -->
+                  @if (isExpanded(node)) {
+                    <div class="tree-children">
+                      @for (child of node.children; track child.name) {
+                        <div class="tree-node-container tree-node-child">
+                          <button mat-icon-button disabled class="tree-toggle-button"></button>
+                          <mat-icon class="tree-icon">table_chart</mat-icon>
+                          <span 
+                            class="tree-node-label"
+                            [class.active]="isNodeSelected(child)"
+                            (click)="selectTreeNode(child)">
+                            {{ child.name }}
+                            @if (child.entity) {
+                              <span class="node-count">({{ child.entity.properties.length }})</span>
+                            }
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -59,47 +87,46 @@
 
     <mat-sidenav-content class="main-content">
       <mat-toolbar class="main-toolbar">
-        <button mat-icon-button (click)="toggleSidenav()" class="menu-toggle">
-          <mat-icon>menu</mat-icon>
-        </button>
-        <span class="toolbar-title">{{ selectedEntity?.name || 'Dashboard' }}</span>
+        <span class="toolbar-title">
+          {{ selectedEntity()?.name || 'Dashboard' }}
+        </span>
         <span class="spacer"></span>
+        <a mat-icon-button routerLink="/diagram" matTooltip="View Database Diagram">
+          <mat-icon>schema</mat-icon>
+        </a>
         <mat-icon class="toolbar-icon">admin_panel_settings</mat-icon>
       </mat-toolbar>
 
       <div class="content-wrapper">
-        <div *ngIf="!selectedEntity" class="welcome-card fade-in">
-          <mat-card class="welcome-card-inner">
-            <mat-card-header>
-              <div mat-card-avatar class="welcome-avatar">
-                <mat-icon>dashboard</mat-icon>
-              </div>
-              <mat-card-title>Welcome to DB Admin Panel</mat-card-title>
-              <mat-card-subtitle>Modern Database Management Interface</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <p class="welcome-text">
-                Select an entity from the sidebar to view and manage your database records.
-                <br>
-                <span class="highlight">Total Entities: {{ allMetadata.length }}</span>
-              </p>
-              <div class="stats-grid" *ngIf="allMetadata.length > 0">
-                <mat-card class="stat-card" *ngFor="let ctx of dbContexts">
-                  <mat-card-content>
-                    <div class="stat-value">{{ getEntityCount(ctx) }}</div>
-                    <div class="stat-label">{{ ctx }}</div>
-                  </mat-card-content>
-                </mat-card>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-
-        <div *ngIf="selectedEntity" class="entity-content fade-in">
-          <app-entity-table [entityMetadata]="selectedEntity"></app-entity-table>
-        </div>
+        <router-outlet></router-outlet>
+        @if (!route.firstChild) {
+          @if (selectedEntity()) {
+            <div class="entity-content fade-in">
+              <app-entity-table [entityMetadata]="selectedEntity()!"></app-entity-table>
+            </div>
+          } @else {
+            <div class="welcome-card fade-in">
+              <mat-card class="welcome-card-inner">
+                <mat-card-header>
+                  <div mat-card-avatar class="welcome-avatar">
+                    <mat-icon>dashboard</mat-icon>
+                  </div>
+                  <mat-card-title>Welcome to DB Admin Panel</mat-card-title>
+                  <mat-card-subtitle>Modern Database Management Interface</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <p class="welcome-text">
+                    Select a DB context from the sidebar to view its metadata and diagram,
+                    or select an entity to manage database records.
+                  </p>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          }
+        }
       </div>
     </mat-sidenav-content>
   </mat-sidenav-container>
 </div>
+
 

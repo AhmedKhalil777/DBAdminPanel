@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { DeleteConfirmationModalComponent, DeleteConfirmationData } from '../delete-confirmation-modal/delete-confirmation-modal.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -203,18 +204,71 @@ export class EntityTableComponent {
 
   delete(entity: any) {
     const metadata = this.entityMetadata();
-    if (confirm(`Are you sure you want to delete this ${metadata.name}?`)) {
-      const id = entity[metadata.keyProperty];
-      this.apiService.deleteEntity(metadata.name, String(id)).subscribe({
-        next: () => {
-          this.loadData();
-        },
-        error: (error) => {
-          console.error('Failed to delete:', error);
-          alert('Failed to delete entity');
-        }
-      });
+    const id = this.getRowValue(entity, metadata.keyProperty);
+    
+    if (id === null || id === undefined) {
+      console.error('Cannot delete: ID is null or undefined', { entity, keyProperty: metadata.keyProperty });
+      alert('Failed to delete: ID not found');
+      return;
     }
+
+    // Create display name from entity properties
+    const displayName = this.formatEntityDisplayName(entity, metadata);
+
+    const dialogData: DeleteConfirmationData = {
+      entityName: metadata.name,
+      entityId: id,
+      displayName: displayName
+    };
+
+    const dialogRef = this.dialog.open(DeleteConfirmationModalComponent, {
+      width: '500px',
+      data: dialogData,
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        this.apiService.deleteEntity(metadata.name, String(id)).subscribe({
+          next: () => {
+            this.loadData();
+          },
+          error: (error) => {
+            console.error('Failed to delete:', error);
+            alert('Failed to delete entity: ' + (error.error?.message || error.message));
+          }
+        });
+      }
+    });
+  }
+
+  formatEntityDisplayName(entity: any, metadata: EntityMetadata): string {
+    // Try to create a meaningful display name from entity properties
+    // First try key property
+    const keyValue = this.getRowValue(entity, metadata.keyProperty);
+    if (keyValue !== null && keyValue !== undefined) {
+      return `ID: ${keyValue}`;
+    }
+    
+    // Try common name fields
+    const nameFields = ['name', 'title', 'label', 'description'];
+    for (const field of nameFields) {
+      const value = this.getRowValue(entity, field);
+      if (value !== null && value !== undefined && value !== '') {
+        return String(value);
+      }
+    }
+    
+    // Fallback to first non-key property
+    const firstProp = metadata.properties.find(p => !p.isKey);
+    if (firstProp) {
+      const value = this.getRowValue(entity, firstProp.name);
+      if (value !== null && value !== undefined && value !== '') {
+        return String(value);
+      }
+    }
+    
+    return `Entity #${keyValue || 'Unknown'}`;
   }
 
   onSave() {

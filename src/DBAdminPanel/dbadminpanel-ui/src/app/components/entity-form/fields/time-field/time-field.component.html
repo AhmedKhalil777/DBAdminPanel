@@ -1,0 +1,10 @@
+<mat-form-field appearance="outline" class="full-width">
+  <mat-label>{{ property.name }}</mat-label>
+  <input 
+    matInput 
+    type="time"
+    [formControl]="getControl()"
+    [placeholder]="property.name">
+  <mat-icon matPrefix>schedule</mat-icon>
+</mat-form-field>
+

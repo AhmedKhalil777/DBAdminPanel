@@ -1,17 +1,16 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatSelectModule } from '@angular/material/select';
 import { MatDividerModule } from '@angular/material/divider';
 import { ApiService, EntityMetadata } from '../../services/api.service';
+import { TextFieldComponent } from './fields/text-field/text-field.component';
+import { DateFieldComponent } from './fields/date-field/date-field.component';
+import { DateTimeFieldComponent } from './fields/datetime-field/datetime-field.component';
+import { TimeFieldComponent } from './fields/time-field/time-field.component';
+import { CheckboxFieldComponent } from './fields/checkbox-field/checkbox-field.component';
 
 @Component({
   selector: 'app-entity-form',
@@ -21,20 +20,19 @@ import { ApiService, EntityMetadata } from '../../services/api.service';
     FormsModule,
     ReactiveFormsModule,
     MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatCheckboxModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatSelectModule,
-    MatDividerModule
+    MatDividerModule,
+    TextFieldComponent,
+    DateFieldComponent,
+    DateTimeFieldComponent,
+    TimeFieldComponent,
+    CheckboxFieldComponent
   ],
   templateUrl: './entity-form.component.html',
   styleUrl: './entity-form.component.css'
 })
-export class EntityFormComponent implements OnInit {
+export class EntityFormComponent implements OnInit, OnChanges {
   @Input() entityMetadata!: EntityMetadata;
   @Input() entity: any = null;
   @Output() save = new EventEmitter<void>();
@@ -42,23 +40,45 @@ export class EntityFormComponent implements OnInit {
 
   formGroup!: FormGroup;
   isEditMode = false;
+  formReady = false;
 
   constructor(
     private apiService: ApiService,
     private fb: FormBuilder
-  ) {}
+  ) {
+    // Initialize empty formGroup in constructor to ensure it's always available
+    this.formGroup = this.fb.group({});
+  }
 
   ngOnInit() {
-    this.isEditMode = this.entity !== null;
-    // Initialize form with empty group first to prevent undefined errors
-    this.formGroup = this.fb.group({});
+    this.updateEditMode();
     this.buildForm();
+    this.formReady = true;
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Rebuild form when entity or entityMetadata changes
+    if (changes['entity'] || changes['entityMetadata']) {
+      this.updateEditMode();
+      // Only rebuild if formGroup is already initialized (after ngOnInit)
+      if (this.formGroup) {
+        this.buildForm();
+      }
+    }
+  }
+
+  updateEditMode() {
+    this.isEditMode = this.entity !== null && this.entity !== undefined;
   }
 
   buildForm() {
     if (!this.entityMetadata || !this.entityMetadata.properties) {
+      this.formReady = false;
       return;
     }
+    
+    // Temporarily set formReady to false to prevent rendering during rebuild
+    this.formReady = false;
     
     const formControls: any = {};
     
@@ -67,44 +87,77 @@ export class EntityFormComponent implements OnInit {
         ? this.entity[prop.name] 
         : this.getDefaultValue(prop);
       
-      // Convert DateTime strings to datetime-local format for input
-      if (prop.inputType === 'datetime-local' && value) {
-        value = this.formatDateTimeForInput(value);
+      // For datetime-local, create separate date and time controls
+      if (prop.inputType === 'datetime-local') {
+        if (value) {
+          const dateValue = new Date(value);
+          if (!isNaN(dateValue.getTime())) {
+            // Split into date (Date object) and time (HH:mm string)
+            formControls[`${prop.name}_date`] = [dateValue, []];
+            const hours = String(dateValue.getHours()).padStart(2, '0');
+            const minutes = String(dateValue.getMinutes()).padStart(2, '0');
+            formControls[`${prop.name}_time`] = [`${hours}:${minutes}`, []];
+          } else {
+            formControls[`${prop.name}_date`] = [null, []];
+            formControls[`${prop.name}_time`] = ['', []];
+          }
+        } else {
+          formControls[`${prop.name}_date`] = [null, []];
+          formControls[`${prop.name}_time`] = ['', []];
+        }
       }
       // Convert Date strings to Date object for Material datepicker
-      else if (prop.inputType === 'date' && value) {
+      else if (prop.inputType === 'date') {
         // Material datepicker expects a Date object, not a string
-        const dateValue = new Date(value);
-        value = !isNaN(dateValue.getTime()) ? dateValue : null;
+        if (value) {
+          const dateValue = new Date(value);
+          value = !isNaN(dateValue.getTime()) ? dateValue : null;
+        }
+        const validators = prop.isKey && !this.isEditMode ? [] : [];
+        formControls[prop.name] = [value, validators];
       }
-      
-      const validators = prop.isKey && !this.isEditMode 
-        ? [] 
-        : prop.inputType === 'email' 
-          ? [Validators.email] 
-          : [];
-      
-      formControls[prop.name] = [value, validators];
+      else {
+        const validators = prop.isKey && !this.isEditMode 
+          ? [] 
+          : prop.inputType === 'email' 
+            ? [Validators.email] 
+            : [];
+        formControls[prop.name] = [value, validators];
+      }
     });
 
-    this.formGroup = this.fb.group(formControls);
-  }
-
-  formatDateTimeForInput(value: any): string {
-    if (!value) return '';
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return '';
+    // Update form controls in place to maintain form directive connection
+    // Remove controls that no longer exist
+    const existingKeys = Object.keys(this.formGroup.controls);
+    const newKeys = Object.keys(formControls);
     
-    // Format as YYYY-MM-DDTHH:mm:ss for datetime-local input
-    // Use local time, not UTC, so the user sees their local time
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
+    // Remove controls that are no longer needed
+    existingKeys.forEach(key => {
+      if (!newKeys.includes(key)) {
+        this.formGroup.removeControl(key);
+      }
+    });
     
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    // Add or update controls
+    newKeys.forEach(key => {
+      if (this.formGroup.get(key)) {
+        // Update existing control value
+        const control = this.formGroup.get(key)!;
+        control.setValue(formControls[key][0], { emitEvent: false });
+        // Update validators if needed
+        control.setValidators(formControls[key][1]);
+        control.updateValueAndValidity({ emitEvent: false });
+      } else {
+        // Add new control
+        this.formGroup.addControl(key, this.fb.control(formControls[key][0], formControls[key][1]));
+      }
+    });
+    
+    // Mark form as ready after all controls are added
+    // Use setTimeout to ensure Angular change detection has processed the control additions
+    setTimeout(() => {
+      this.formReady = true;
+    }, 0);
   }
 
   formatDateForInput(value: any): string {
@@ -138,7 +191,45 @@ export class EntityFormComponent implements OnInit {
     
     // Convert values to proper types
     this.entityMetadata.properties.forEach(prop => {
-      if (data[prop.name] !== null && data[prop.name] !== undefined && data[prop.name] !== '') {
+      // Handle datetime-local fields: combine date and time
+      if (prop.inputType === 'datetime-local') {
+        const dateValue = data[`${prop.name}_date`];
+        const timeValue = data[`${prop.name}_time`];
+        
+        // Remove the separate date and time controls from data
+        delete data[`${prop.name}_date`];
+        delete data[`${prop.name}_time`];
+        
+        if (dateValue instanceof Date && timeValue && timeValue.trim() !== '') {
+          // Combine date and time
+          const timeParts = timeValue.trim().split(':');
+          if (timeParts.length >= 2) {
+            const hours = parseInt(timeParts[0], 10) || 0;
+            const minutes = parseInt(timeParts[1], 10) || 0;
+            const seconds = timeParts.length > 2 ? parseInt(timeParts[2], 10) || 0 : 0;
+            
+            // Create a new date with the selected date and time
+            const combinedDate = new Date(dateValue);
+            combinedDate.setHours(hours, minutes, seconds, 0);
+            
+            if (!isNaN(combinedDate.getTime())) {
+              data[prop.name] = combinedDate.toISOString();
+            } else {
+              data[prop.name] = null;
+            }
+          } else {
+            data[prop.name] = null;
+          }
+        } else if (dateValue instanceof Date) {
+          // Only date selected, set time to midnight
+          const combinedDate = new Date(dateValue);
+          combinedDate.setHours(0, 0, 0, 0);
+          data[prop.name] = combinedDate.toISOString();
+        } else {
+          data[prop.name] = null;
+        }
+      }
+      else if (data[prop.name] !== null && data[prop.name] !== undefined && data[prop.name] !== '') {
         // Convert numeric string values to actual numbers
         if (prop.inputType === 'number' || prop.type?.toLowerCase().includes('decimal') || 
             prop.type?.toLowerCase().includes('float') || prop.type?.toLowerCase().includes('double') ||
@@ -146,46 +237,6 @@ export class EntityFormComponent implements OnInit {
           const numValue = Number(data[prop.name]);
           if (!isNaN(numValue)) {
             data[prop.name] = numValue;
-          }
-        }
-        // Convert datetime-local string to ISO string for DateTime fields
-        else if (prop.inputType === 'datetime-local') {
-          if (data[prop.name] && data[prop.name].trim() !== '') {
-            // datetime-local format is YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss
-            // The value from the input is in local time
-            const localDateTime = data[prop.name].trim();
-            
-            // Ensure the format includes seconds if missing
-            let formattedDateTime = localDateTime;
-            if (formattedDateTime.includes('T')) {
-              const [datePart, timePart] = formattedDateTime.split('T');
-              if (timePart && !timePart.includes(':')) {
-                // Invalid format
-                console.warn(`Invalid datetime format: ${localDateTime}`);
-                data[prop.name] = null;
-                return;
-              }
-              // Count colons in time part to determine if seconds are present
-              const timeColons = (timePart.match(/:/g) || []).length;
-              if (timeColons === 1) {
-                // Only hours:minutes, add seconds
-                formattedDateTime = `${datePart}T${timePart}:00`;
-              }
-            }
-            
-            // Parse the datetime-local string as local time
-            // new Date() interprets the string in local time when it's in YYYY-MM-DDTHH:mm:ss format
-            const dateValue = new Date(formattedDateTime);
-            
-            if (!isNaN(dateValue.getTime())) {
-              // Convert to ISO string (UTC) for the API
-              data[prop.name] = dateValue.toISOString();
-            } else {
-              console.error(`Failed to parse datetime: ${localDateTime} (formatted: ${formattedDateTime})`);
-              data[prop.name] = null;
-            }
-          } else {
-            data[prop.name] = null;
           }
         }
         // Convert Date object to ISO string for Date fields
@@ -217,9 +268,9 @@ export class EntityFormComponent implements OnInit {
       } else if (prop.inputType === 'number' && (data[prop.name] === '' || data[prop.name] === null)) {
         // Set null for empty number fields
         data[prop.name] = null;
-      } else if ((prop.inputType === 'date' || prop.inputType === 'datetime-local') && 
+      } else if (prop.inputType === 'date' && 
                  (data[prop.name] === '' || data[prop.name] === null)) {
-        // Set null for empty date/datetime fields
+        // Set null for empty date fields
         data[prop.name] = null;
       }
     });
@@ -252,25 +303,7 @@ export class EntityFormComponent implements OnInit {
     this.cancel.emit();
   }
 
-  getFieldType(prop: any): string {
-    if (prop.inputType === 'number') return 'number';
-    if (prop.inputType === 'email') return 'email';
-    if (prop.inputType === 'password') return 'password';
-    if (prop.inputType === 'date') return 'date';
-    if (prop.inputType === 'datetime-local') return 'datetime-local';
-    if (prop.inputType === 'time') return 'time';
-    return 'text';
-  }
-
-  getFieldIcon(prop: any): string {
-    if (prop.isKey) return 'vpn_key';
-    if (prop.inputType === 'email') return 'email';
-    if (prop.inputType === 'number') return 'numbers';
-    if (prop.inputType === 'date') return 'calendar_today';
-    if (prop.inputType === 'datetime-local') return 'event';
-    if (prop.inputType === 'time') return 'schedule';
-    return 'text_fields';
-  }
 
 }
+
 

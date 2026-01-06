@@ -1,0 +1,15 @@
+{
+  "/DBAdminPanel/api": {
+    "target": "https://localhost:7277",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/DBAdminPanel/*/api": {
+    "target": "https://localhost:7277",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}
+

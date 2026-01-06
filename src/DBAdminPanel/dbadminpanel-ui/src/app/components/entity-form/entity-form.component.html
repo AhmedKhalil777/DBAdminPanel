@@ -15,71 +15,26 @@
     <mat-divider></mat-divider>
 
     <mat-card-content>
-      <form [formGroup]="formGroup" (ngSubmit)="onSubmit()" class="entity-form" *ngIf="formGroup">
+      @if (formReady && formGroup && entityMetadata && entityMetadata.properties && formGroup.controls) {
+        <form [formGroup]="formGroup" (ngSubmit)="onSubmit()" class="entity-form">
         <div class="form-grid">
+          <!-- Regular fields (non-datetime) -->
           <ng-container *ngFor="let prop of entityMetadata.properties">
             <ng-container *ngIf="!prop.isKey || isEditMode">
               <!-- Text, Number, Email inputs -->
-              <mat-form-field appearance="outline" class="full-width" *ngIf="prop.inputType === 'text' || prop.inputType === 'number' || prop.inputType === 'email'">
-                <mat-label>{{ prop.name }}</mat-label>
-                <input
-                  matInput
-                  [type]="getFieldType(prop)"
-                  [formControlName]="prop.name"
-                  [readonly]="prop.isKey && isEditMode"
-                  [placeholder]="prop.name">
-                <mat-icon matPrefix>{{ getFieldIcon(prop) }}</mat-icon>
-                <mat-hint *ngIf="prop.isKey" class="key-hint">Primary Key</mat-hint>
-              </mat-form-field>
-
-              <!-- Date input with Material Datepicker -->
-              <mat-form-field appearance="outline" *ngIf="prop.inputType === 'date'" class="full-width">
-                <mat-label>{{ prop.name }}</mat-label>
-                <input 
-                  matInput 
-                  [matDatepicker]="picker"
-                  [formControlName]="prop.name"
-                  [placeholder]="prop.name"
-                  readonly>
-                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-                <mat-datepicker #picker></mat-datepicker>
-                <mat-icon matPrefix>calendar_today</mat-icon>
-                <mat-hint>Click calendar icon to select a date</mat-hint>
-              </mat-form-field>
-
-              <!-- DateTime input (datetime-local) -->
-              <mat-form-field appearance="outline" *ngIf="prop.inputType === 'datetime-local'" class="full-width">
-                <mat-label>{{ prop.name }}</mat-label>
-                <input 
-                  matInput 
-                  type="datetime-local"
-                  step="1"
-                  [formControlName]="prop.name"
-                  [placeholder]="prop.name">
-                <mat-icon matPrefix>event</mat-icon>
-                <mat-hint>Select date and time (local timezone)</mat-hint>
-              </mat-form-field>
-
-              <!-- Time input -->
-              <mat-form-field appearance="outline" *ngIf="prop.inputType === 'time'" class="full-width">
-                <mat-label>{{ prop.name }}</mat-label>
-                <input 
-                  matInput 
-                  type="time"
-                  [formControlName]="prop.name"
-                  [placeholder]="prop.name">
-                <mat-icon matPrefix>schedule</mat-icon>
-              </mat-form-field>
+              <app-text-field
+                *ngIf="prop.inputType === 'text' || prop.inputType === 'number' || prop.inputType === 'email'"
+                [formGroup]="formGroup"
+                [property]="prop"
+                [isEditMode]="isEditMode">
+              </app-text-field>
 
               <!-- Checkbox for boolean fields -->
-              <div *ngIf="prop.inputType === 'checkbox'" class="checkbox-field">
-                <mat-checkbox
-                  [formControlName]="prop.name"
-                  color="primary">
-                  <span class="checkbox-label">{{ prop.name }}</span>
-                </mat-checkbox>
-                <mat-hint *ngIf="prop.isKey" class="key-hint">Primary Key</mat-hint>
-              </div>
+              <app-checkbox-field
+                *ngIf="prop.inputType === 'checkbox'"
+                [formGroup]="formGroup"
+                [property]="prop">
+              </app-checkbox-field>
 
               <!-- Hidden field for key in edit mode -->
               <input
@@ -88,6 +43,36 @@
                 [formControlName]="prop.name">
             </ng-container>
           </ng-container>
+        </div>
+
+        <!-- DateTime fields section at the bottom -->
+        <div class="datetime-fields-section">
+          <div class="form-grid">
+            <ng-container *ngFor="let prop of entityMetadata.properties">
+              <ng-container *ngIf="!prop.isKey || isEditMode">
+                <!-- Date input with Material Datepicker -->
+                <app-date-field
+                  *ngIf="prop.inputType === 'date'"
+                  [formGroup]="formGroup"
+                  [property]="prop">
+                </app-date-field>
+
+                <!-- DateTime input (separate date and time) -->
+                <app-datetime-field
+                  *ngIf="prop.inputType === 'datetime-local'"
+                  [formGroup]="formGroup"
+                  [property]="prop">
+                </app-datetime-field>
+
+                <!-- Time input -->
+                <app-time-field
+                  *ngIf="prop.inputType === 'time'"
+                  [formGroup]="formGroup"
+                  [property]="prop">
+                </app-time-field>
+              </ng-container>
+            </ng-container>
+          </div>
         </div>
 
         <mat-divider class="form-divider"></mat-divider>
@@ -112,7 +97,14 @@
           </button>
         </div>
       </form>
+      } @else {
+        <div class="form-loading">
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>Loading form...</p>
+        </div>
+      }
     </mat-card-content>
   </mat-card>
 </div>
+
 

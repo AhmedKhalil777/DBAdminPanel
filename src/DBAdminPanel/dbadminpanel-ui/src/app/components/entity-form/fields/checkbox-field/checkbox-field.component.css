@@ -1,0 +1,34 @@
+.checkbox-field {
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-label {
+  font-size: 14px;
+  color: rgba(224, 224, 224, 0.9);
+  font-weight: 500;
+}
+
+.checkbox-field mat-checkbox {
+  margin: 0;
+}
+
+.checkbox-field ::ng-deep .mat-mdc-checkbox {
+  color: #00d4ff;
+}
+
+.checkbox-field ::ng-deep .mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: #0a0e27;
+  --mdc-checkbox-selected-focus-icon-color: #00d4ff;
+  --mdc-checkbox-selected-hover-icon-color: #00d4ff;
+  --mdc-checkbox-selected-icon-color: #00d4ff;
+  --mdc-checkbox-selected-pressed-icon-color: #00d4ff;
+}
+
+.key-hint {
+  color: #00d4ff;
+  font-size: 12px;
+}
+

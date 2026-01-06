@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface EntityMetadata {
   name: string;
@@ -9,8 +10,16 @@ export interface EntityMetadata {
   keyProperty: string;
   dbContextName: string;
   dbContextFullName: string;
+  databaseType?: string;
+  sqlSamples?: SqlSample[];
   properties: PropertyMetadata[];
   apiEndpoints: ApiEndpoint[];
+}
+
+export interface SqlSample {
+  name: string;
+  sql: string;
+  description?: string;
 }
 
 export interface PropertyMetadata {
@@ -30,9 +39,8 @@ export interface ApiEndpoint {
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = '/DBAdminPanel';
-
-  constructor(private http: HttpClient) {}
+  private baseUrl = environment.apiUrl;
+  private http = inject(HttpClient);
 
   getAllMetadata(): Observable<EntityMetadata[]> {
     return this.http.get<EntityMetadata[]>(`${this.baseUrl}/api/metadata`);
@@ -72,5 +80,54 @@ export class ApiService {
   deleteEntity(entityName: string, id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${entityName}/api/${id}`);
   }
+
+  getDiagramData(): Observable<DiagramTableInfo[]> {
+    return this.http.get<DiagramTableInfo[]>(`${this.baseUrl}/api/diagram`);
+  }
+
+  executeSql(sql: string, dbContextName?: string | null): Observable<SqlExecutionResult> {
+    const url = `${this.baseUrl}/api/sql/execute`;
+    const body: any = { sql };
+    if (dbContextName) {
+      body.dbContextName = dbContextName;
+    }
+    return this.http.post<SqlExecutionResult>(url, body);
+  }
+}
+
+export interface DiagramTableInfo {
+  name: string;
+  fullName: string;
+  tableName: string;
+  dbContextName: string;
+  modelFilePath: string;
+  columns: DiagramColumnInfo[];
+  relations: DiagramRelationInfo[];
+}
+
+export interface DiagramColumnInfo {
+  name: string;
+  type: string;
+  fullType: string;
+  isNullable: boolean;
+  isPrimaryKey: boolean;
+  isForeignKey: boolean;
+}
+
+export interface DiagramRelationInfo {
+  fromTable: string;
+  toTable: string;
+  fromColumn: string;
+  toColumn: string;
+  relationshipType: string;
+}
+
+export interface SqlExecutionResult {
+  hasResult: boolean;
+  columns?: string[];
+  rows?: any[][];
+  rowCount?: number;
+  rowsAffected?: number;
+  executionTime?: number;
 }
 

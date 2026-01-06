@@ -1,0 +1,23 @@
+<div class="datetime-field full-width-row">
+  <mat-form-field appearance="outline" class="date-field">
+    <mat-label>{{ property.name }} (Date)</mat-label>
+    <input 
+      matInput 
+      [matDatepicker]="datetimePicker"
+      [formControl]="getDateControl()"
+      [placeholder]="property.name"
+      readonly>
+    <mat-datepicker-toggle matIconSuffix [for]="datetimePicker"></mat-datepicker-toggle>
+    <mat-datepicker #datetimePicker></mat-datepicker>
+    <mat-icon matPrefix>calendar_today</mat-icon>
+  </mat-form-field>
+  <div class="time-field-wrapper">
+    <app-time-picker
+      [formControl]="getTimeControl()"
+      [label]="property.name + ' (Time)'"
+      [placeholder]="'HH:mm'"
+      class="time-field">
+    </app-time-picker>
+  </div>
+</div>
+

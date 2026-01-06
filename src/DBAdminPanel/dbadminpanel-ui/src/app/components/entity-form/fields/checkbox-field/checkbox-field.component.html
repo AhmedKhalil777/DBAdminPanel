@@ -1,0 +1,9 @@
+<div class="checkbox-field">
+  <mat-checkbox
+    [formControl]="getControl()"
+    color="primary">
+    <span class="checkbox-label">{{ property.name }}</span>
+  </mat-checkbox>
+  <mat-hint *ngIf="property.isKey" class="key-hint">Primary Key</mat-hint>
+</div>
+

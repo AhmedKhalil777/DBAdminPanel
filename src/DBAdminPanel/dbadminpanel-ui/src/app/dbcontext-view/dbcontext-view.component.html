@@ -1,0 +1,44 @@
+<div class="dbcontext-view-container">
+  @if (contextMetadata(); as metadata) {
+    <mat-card class="dbcontext-metadata-card">
+      <mat-card-header>
+        <div mat-card-avatar class="dbcontext-avatar">
+          <mat-icon>storage</mat-icon>
+        </div>
+        <mat-card-title>{{ metadata.name }}</mat-card-title>
+        <mat-card-subtitle>Database Context Metadata</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metadata-stats">
+          <div class="stat-item">
+            <mat-icon>table_chart</mat-icon>
+            <div class="stat-content">
+              <div class="stat-value">{{ metadata.entityCount }}</div>
+              <div class="stat-label">Entities</div>
+            </div>
+          </div>
+        </div>
+        <div class="entities-list">
+          <h3>Entities in this context:</h3>
+          <mat-chip-set>
+            @for (entity of metadata.entities; track entity.name) {
+              <mat-chip (click)="selectEntity(entity)" class="entity-chip clickable">
+                <mat-icon>table_chart</mat-icon>
+                {{ entity.name }}
+              </mat-chip>
+            }
+          </mat-chip-set>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="diagram-section">
+      <app-diagram [dbContextFilter]="metadata.name" [hideToolbar]="true"></app-diagram>
+    </div>
+  } @else {
+    <div class="loading-container">
+      <p>Loading DB context metadata...</p>
+    </div>
+  }
+</div>
+

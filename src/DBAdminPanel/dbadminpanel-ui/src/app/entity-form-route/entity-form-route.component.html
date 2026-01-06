@@ -1,0 +1,26 @@
+@if (isLoading()) {
+  <div class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>Loading...</p>
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon class="error-icon">error</mat-icon>
+    <h3>Error</h3>
+    <p>{{ error() }}</p>
+    <button mat-raised-button color="primary" (click)="onCancel()">
+      <mat-icon>arrow_back</mat-icon>
+      Back
+    </button>
+  </div>
+} @else if (entityMetadata()) {
+  <div class="form-route-container">
+    <app-entity-form
+      [entityMetadata]="entityMetadata()!"
+      [entity]="entity()"
+      (save)="onSave()"
+      (cancel)="onCancel()">
+    </app-entity-form>
+  </div>
+}
+

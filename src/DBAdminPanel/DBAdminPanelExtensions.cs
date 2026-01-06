@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace DBAdminPanel
 {
@@ -179,6 +181,30 @@ namespace DBAdminPanel
                 if (dashboardEndpointsType != null)
                 {
                     var mapMethod = dashboardEndpointsType.GetMethod("MapDashboardEndpoints", 
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    if (mapMethod != null)
+                    {
+                        mapMethod.Invoke(null, new object[] { app });
+                    }
+                }
+
+                // Map diagram endpoints
+                var diagramEndpointsType = entryAssembly.GetType("DBAdminPanel.Generated.Endpoints.DiagramEndpoints");
+                if (diagramEndpointsType != null)
+                {
+                    var mapMethod = diagramEndpointsType.GetMethod("MapDiagramEndpoints", 
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    if (mapMethod != null)
+                    {
+                        mapMethod.Invoke(null, new object[] { app });
+                    }
+                }
+
+                // Map SQL execution endpoints
+                var sqlExecutionEndpointsType = entryAssembly.GetType("DBAdminPanel.Generated.Endpoints.SqlExecutionEndpoints");
+                if (sqlExecutionEndpointsType != null)
+                {
+                    var mapMethod = sqlExecutionEndpointsType.GetMethod("MapSqlExecutionEndpoints", 
                         System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
                     if (mapMethod != null)
                     {

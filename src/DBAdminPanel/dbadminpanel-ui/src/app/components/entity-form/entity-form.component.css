@@ -81,43 +81,26 @@
   margin-bottom: 24px;
 }
 
-.full-width {
+.datetime-fields-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.datetime-fields-section .form-grid {
+  margin-bottom: 0;
+}
+
+/* Ensure datetime fields take full width and wrap to new row */
+.datetime-fields-section app-datetime-field,
+.datetime-fields-section app-date-field,
+.datetime-fields-section app-time-field {
+  grid-column: 1 / -1;
   width: 100%;
+  display: block;
 }
 
-.checkbox-field {
-  padding: 16px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.checkbox-label {
-  font-size: 14px;
-  color: rgba(224, 224, 224, 0.9);
-  font-weight: 500;
-}
-
-.checkbox-field mat-checkbox {
-  margin: 0;
-}
-
-.checkbox-field ::ng-deep .mat-mdc-checkbox {
-  color: #00d4ff;
-}
-
-.checkbox-field ::ng-deep .mdc-checkbox {
-  --mdc-checkbox-selected-checkmark-color: #0a0e27;
-  --mdc-checkbox-selected-focus-icon-color: #00d4ff;
-  --mdc-checkbox-selected-hover-icon-color: #00d4ff;
-  --mdc-checkbox-selected-icon-color: #00d4ff;
-  --mdc-checkbox-selected-pressed-icon-color: #00d4ff;
-}
-
-.key-hint {
-  color: #00d4ff;
-  font-size: 12px;
-}
+/* Field-specific styles moved to sub-components */
 
 .form-divider {
   margin: 24px 0;
@@ -230,4 +213,37 @@
   color: #0a0e27 !important;
 }
 }
+
+.form-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #666;
+  gap: 16px;
+}
+
+.form-loading mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #999;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.form-loading p {
+  margin: 0;
+  font-size: 14px;
+}
+
 

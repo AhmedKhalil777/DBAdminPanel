@@ -48,6 +48,18 @@ public class Program
         // Add DBAdminPanel - this will scan all DbContexts and generate admin panels
         builder.Services.AddDBAdminPanel();
 
+        // Configure CORS for local development
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.WithOrigins("http://localhost:4200")
+                      .AllowAnyMethod()
+                      .AllowAnyHeader()
+                      .AllowCredentials();
+            });
+        });
+
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
 
@@ -64,6 +76,10 @@ public class Program
         app.UseHttpsRedirection();
         app.UseStaticFiles();
         app.UseRouting();
+        
+        // Enable CORS - must be after UseRouting and before UseAuthorization
+        app.UseCors();
+        
         app.UseAuthorization();
 
         app.MapControllerRoute(

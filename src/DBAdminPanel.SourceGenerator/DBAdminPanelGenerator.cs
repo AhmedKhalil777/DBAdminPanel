@@ -31,9 +31,9 @@ namespace DBAdminPanel.SourceGenerator
             {
                 var semanticModel = compilation.GetSemanticModel(dbContextSyntax.SyntaxTree);
                 var dbContextSymbol = semanticModel.GetDeclaredSymbol(dbContextSyntax) as INamedTypeSymbol;
-                if (dbContextSymbol == null || !IsDbContext(dbContextSymbol, dbContextType)) continue;
+                if (dbContextSymbol == null || !EntityAnalyzer.IsDbContext(dbContextSymbol, dbContextType)) continue;
 
-                var entities = GetEntitiesFromDbContext(dbContextSymbol, dbContextType);
+                var entities = EntityAnalyzer.GetEntitiesFromDbContext(dbContextSymbol, dbContextType);
                 if (entities.Any())
                 {
                     allDbContextEntities.Add((dbContextSymbol, entities));
@@ -42,389 +42,20 @@ namespace DBAdminPanel.SourceGenerator
 
             if (!allDbContextEntities.Any()) return;
 
-            GenerateJsonConverter(context);
-            GenerateMetadataClasses(context, allDbContextEntities);
-            GenerateEntityEndpoints(context, allDbContextEntities);
+            Generators.JsonConverterGenerator.Generate(context);
+            Generators.MetadataClassesGenerator.Generate(context, allDbContextEntities);
+            Generators.EntityEndpointsGenerator.Generate(context, allDbContextEntities);
             GenerateMetadataEndpoints(context, allDbContextEntities);
             GenerateDashboardEndpoints(context, allDbContextEntities);
+            GenerateDiagramEndpoints(context, allDbContextEntities);
+            GenerateSqlExecutionEndpoints(context, allDbContextEntities);
         }
 
-        private void GenerateJsonConverter(GeneratorExecutionContext context)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("using System.Text.Json;");
-            sb.AppendLine("using System.Text.Json.Serialization;");
-            sb.AppendLine();
-            sb.AppendLine("namespace DBAdminPanel.Generated.Controllers");
-            sb.AppendLine("{");
-            sb.AppendLine("    public class StringToNumberConverter : JsonConverterFactory");
-            sb.AppendLine("    {");
-            sb.AppendLine("        public override bool CanConvert(Type typeToConvert)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            return typeToConvert == typeof(decimal) || typeToConvert == typeof(decimal?) ||");
-            sb.AppendLine("                   typeToConvert == typeof(double) || typeToConvert == typeof(double?) ||");
-            sb.AppendLine("                   typeToConvert == typeof(float) || typeToConvert == typeof(float?) ||");
-            sb.AppendLine("                   typeToConvert == typeof(int) || typeToConvert == typeof(int?) ||");
-            sb.AppendLine("                   typeToConvert == typeof(long) || typeToConvert == typeof(long?);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            if (typeToConvert == typeof(decimal) || typeToConvert == typeof(decimal?))");
-            sb.AppendLine("                return new DecimalConverter();");
-            sb.AppendLine("            if (typeToConvert == typeof(double) || typeToConvert == typeof(double?))");
-            sb.AppendLine("                return new DoubleConverter();");
-            sb.AppendLine("            if (typeToConvert == typeof(float) || typeToConvert == typeof(float?))");
-            sb.AppendLine("                return new FloatConverter();");
-            sb.AppendLine("            if (typeToConvert == typeof(int) || typeToConvert == typeof(int?))");
-            sb.AppendLine("                return new IntConverter();");
-            sb.AppendLine("            if (typeToConvert == typeof(long) || typeToConvert == typeof(long?))");
-            sb.AppendLine("                return new LongConverter();");
-            sb.AppendLine("            throw new NotSupportedException();");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        private class DecimalConverter : JsonConverter<decimal>");
-            sb.AppendLine("        {");
-            sb.AppendLine("            public override decimal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                if (reader.TokenType == JsonTokenType.String)");
-            sb.AppendLine("                {");
-            sb.AppendLine("                    var str = reader.GetString();");
-            sb.AppendLine("                    if (string.IsNullOrWhiteSpace(str)) return 0m;");
-            sb.AppendLine("                    return decimal.Parse(str, System.Globalization.CultureInfo.InvariantCulture);");
-            sb.AppendLine("                }");
-            sb.AppendLine("                return reader.GetDecimal();");
-            sb.AppendLine("            }");
-            sb.AppendLine();
-            sb.AppendLine("            public override void Write(Utf8JsonWriter writer, decimal value, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                writer.WriteNumberValue(value);");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        private class DoubleConverter : JsonConverter<double>");
-            sb.AppendLine("        {");
-            sb.AppendLine("            public override double Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                if (reader.TokenType == JsonTokenType.String)");
-            sb.AppendLine("                {");
-            sb.AppendLine("                    var str = reader.GetString();");
-            sb.AppendLine("                    if (string.IsNullOrWhiteSpace(str)) return 0.0;");
-            sb.AppendLine("                    return double.Parse(str, System.Globalization.CultureInfo.InvariantCulture);");
-            sb.AppendLine("                }");
-            sb.AppendLine("                return reader.GetDouble();");
-            sb.AppendLine("            }");
-            sb.AppendLine();
-            sb.AppendLine("            public override void Write(Utf8JsonWriter writer, double value, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                writer.WriteNumberValue(value);");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        private class FloatConverter : JsonConverter<float>");
-            sb.AppendLine("        {");
-            sb.AppendLine("            public override float Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                if (reader.TokenType == JsonTokenType.String)");
-            sb.AppendLine("                {");
-            sb.AppendLine("                    var str = reader.GetString();");
-            sb.AppendLine("                    if (string.IsNullOrWhiteSpace(str)) return 0f;");
-            sb.AppendLine("                    return float.Parse(str, System.Globalization.CultureInfo.InvariantCulture);");
-            sb.AppendLine("                }");
-            sb.AppendLine("                return reader.GetSingle();");
-            sb.AppendLine("            }");
-            sb.AppendLine();
-            sb.AppendLine("            public override void Write(Utf8JsonWriter writer, float value, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                writer.WriteNumberValue(value);");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        private class IntConverter : JsonConverter<int>");
-            sb.AppendLine("        {");
-            sb.AppendLine("            public override int Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                if (reader.TokenType == JsonTokenType.String)");
-            sb.AppendLine("                {");
-            sb.AppendLine("                    var str = reader.GetString();");
-            sb.AppendLine("                    if (string.IsNullOrWhiteSpace(str)) return 0;");
-            sb.AppendLine("                    return int.Parse(str, System.Globalization.CultureInfo.InvariantCulture);");
-            sb.AppendLine("                }");
-            sb.AppendLine("                return reader.GetInt32();");
-            sb.AppendLine("            }");
-            sb.AppendLine();
-            sb.AppendLine("            public override void Write(Utf8JsonWriter writer, int value, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                writer.WriteNumberValue(value);");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        private class LongConverter : JsonConverter<long>");
-            sb.AppendLine("        {");
-            sb.AppendLine("            public override long Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                if (reader.TokenType == JsonTokenType.String)");
-            sb.AppendLine("                {");
-            sb.AppendLine("                    var str = reader.GetString();");
-            sb.AppendLine("                    if (string.IsNullOrWhiteSpace(str)) return 0L;");
-            sb.AppendLine("                    return long.Parse(str, System.Globalization.CultureInfo.InvariantCulture);");
-            sb.AppendLine("                }");
-            sb.AppendLine("                return reader.GetInt64();");
-            sb.AppendLine("            }");
-            sb.AppendLine();
-            sb.AppendLine("            public override void Write(Utf8JsonWriter writer, long value, JsonSerializerOptions options)");
-            sb.AppendLine("            {");
-            sb.AppendLine("                writer.WriteNumberValue(value);");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
 
-            context.AddSource("StringToNumberConverter.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
-        }
 
-        private bool IsDbContext(INamedTypeSymbol type, INamedTypeSymbol dbContextType)
-        {
-            var current = type;
-            while (current != null)
-            {
-                if (SymbolEqualityComparer.Default.Equals(current, dbContextType))
-                    return true;
-                current = current.BaseType;
-            }
-            return false;
-        }
 
-        private List<EntityInfo> GetEntitiesFromDbContext(INamedTypeSymbol dbContext, INamedTypeSymbol dbContextType)
-        {
-            var entities = new List<EntityInfo>();
-            var dbSetType = dbContextType.ContainingNamespace.GetMembers("DbSet").OfType<INamedTypeSymbol>()
-                .FirstOrDefault()?.ConstructUnboundGenericType() ?? 
-                dbContext.ContainingAssembly.GetTypeByMetadataName("Microsoft.EntityFrameworkCore.DbSet`1");
-
-            foreach (var member in dbContext.GetMembers())
-            {
-                if (member is IPropertySymbol prop && prop.Type is INamedTypeSymbol namedType)
-                {
-                    if (namedType.IsGenericType)
-                    {
-                        var genericTypeDef = namedType.ConstructUnboundGenericType();
-                        if (genericTypeDef.Name == "DbSet" && namedType.TypeArguments.Length == 1)
-                        {
-                            var entityType = namedType.TypeArguments[0] as INamedTypeSymbol;
-                            if (entityType != null)
-                            {
-                                var keyProperty = FindKeyProperty(entityType);
-                                entities.Add(new EntityInfo
-                                {
-                                    Name = entityType.Name,
-                                    FullName = entityType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                                    DbSetName = prop.Name,
-                                    DbContextName = dbContext.Name,
-                                    DbContextFullName = dbContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                                    KeyProperty = keyProperty?.Name ?? "Id",
-                                    KeyPropertyType = keyProperty?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? "int",
-                                    Properties = GetEntityProperties(entityType, keyProperty)
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            return entities;
-        }
-
-        private IPropertySymbol? FindKeyProperty(INamedTypeSymbol entityType)
-        {
-            var properties = entityType.GetMembers().OfType<IPropertySymbol>();
-            
-            // Look for "Id" or "{EntityName}Id"
-            var idProperty = properties.FirstOrDefault(p => 
-                p.Name == "Id" || p.Name == $"{entityType.Name}Id");
-            if (idProperty != null) return idProperty;
-
-            // Look for [Key] attribute
-            foreach (var prop in properties)
-            {
-                if (prop.GetAttributes().Any(a => a.AttributeClass?.Name == "KeyAttribute"))
-                    return prop;
-            }
-
-            return properties.FirstOrDefault();
-        }
-
-        private List<PropertyInfo> GetEntityProperties(INamedTypeSymbol entityType, IPropertySymbol? keyProperty)
-        {
-            var properties = new List<PropertyInfo>();
-            var keyPropertyName = keyProperty?.Name ?? "Id";
-
-            foreach (var prop in entityType.GetMembers().OfType<IPropertySymbol>())
-            {
-                if (prop.IsStatic || prop.GetMethod == null) continue;
-                
-                properties.Add(new PropertyInfo
-                {
-                    Name = prop.Name,
-                    Type = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                    IsKey = prop.Name == keyPropertyName
-                });
-            }
-
-            return properties;
-        }
-
-        private void GenerateMetadataClasses(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("#nullable enable");
-            sb.AppendLine("using System.Collections.Generic;");
-            sb.AppendLine("using System.Linq;");
-            sb.AppendLine();
-            sb.AppendLine("namespace DBAdminPanel.Generated");
-            sb.AppendLine("{");
-            sb.AppendLine("    public static class EntityMetadata");
-            sb.AppendLine("    {");
-            sb.AppendLine("        public static List<EntityMetadataInfo> GetAllEntities()");
-            sb.AppendLine("        {");
-            sb.AppendLine("            return new List<EntityMetadataInfo>");
-            sb.AppendLine("            {");
-
-            foreach (var (dbContext, entities) in allEntities)
-            {
-                foreach (var entity in entities)
-                {
-                    sb.AppendLine($"                new EntityMetadataInfo");
-                    sb.AppendLine("                {");
-                    sb.AppendLine($"                    Name = \"{entity.Name}\",");
-                    sb.AppendLine($"                    FullName = \"{entity.FullName}\",");
-                    sb.AppendLine($"                    DbSetName = \"{entity.DbSetName}\",");
-                    sb.AppendLine($"                    KeyProperty = \"{entity.KeyProperty}\",");
-                    sb.AppendLine($"                    DbContextName = \"{entity.DbContextName}\",");
-                    sb.AppendLine($"                    DbContextFullName = \"{entity.DbContextFullName}\",");
-                    sb.AppendLine($"                    Properties = new List<PropertyMetadataInfo>");
-                    sb.AppendLine("                    {");
-                    foreach (var prop in entity.Properties)
-                    {
-                        var inputType = GetInputType(prop.Type);
-                        sb.AppendLine($"                        new PropertyMetadataInfo");
-                        sb.AppendLine("                        {");
-                        sb.AppendLine($"                            Name = \"{prop.Name}\",");
-                        sb.AppendLine($"                            Type = \"{prop.Type}\",");
-                        sb.AppendLine($"                            InputType = \"{inputType}\",");
-                        sb.AppendLine($"                            IsKey = {prop.IsKey.ToString().ToLowerInvariant()}");
-                        sb.AppendLine("                        },");
-                    }
-                    // Remove trailing comma
-                    var content = sb.ToString().TrimEnd();
-                    if (content.EndsWith(","))
-                    {
-                        sb.Clear();
-                        sb.Append(content.Substring(0, content.Length - 1));
-                    }
-                    sb.AppendLine();
-                    sb.AppendLine("                    },");
-                    sb.AppendLine($"                    ApiEndpoints = new List<ApiEndpointInfo>");
-                    sb.AppendLine("                    {");
-                    sb.AppendLine($"                        new ApiEndpointInfo {{ Method = \"GET\", Path = \"/DBAdminPanel/{entity.Name}/api\", Description = \"Get all {entity.Name} entities\" }},");
-                    sb.AppendLine($"                        new ApiEndpointInfo {{ Method = \"GET\", Path = \"/DBAdminPanel/{entity.Name}/api/{{id}}\", Description = \"Get {entity.Name} entity by ID\" }},");
-                    sb.AppendLine($"                        new ApiEndpointInfo {{ Method = \"POST\", Path = \"/DBAdminPanel/{entity.Name}/api\", Description = \"Create new {entity.Name} entity\" }},");
-                    sb.AppendLine($"                        new ApiEndpointInfo {{ Method = \"PUT\", Path = \"/DBAdminPanel/{entity.Name}/api/{{id}}\", Description = \"Update {entity.Name} entity\" }},");
-                    sb.AppendLine($"                        new ApiEndpointInfo {{ Method = \"DELETE\", Path = \"/DBAdminPanel/{entity.Name}/api/{{id}}\", Description = \"Delete {entity.Name} entity\" }}");
-                    sb.AppendLine("                    }");
-                    sb.AppendLine("                },");
-                }
-            }
-
-            // Remove trailing comma
-            var finalContent = sb.ToString().TrimEnd();
-            if (finalContent.EndsWith(","))
-            {
-                sb.Clear();
-                sb.Append(finalContent.Substring(0, finalContent.Length - 1));
-            }
-            sb.AppendLine();
-            sb.AppendLine("            };");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        public static EntityMetadataInfo? GetEntityMetadata(string entityName)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            return GetAllEntities().FirstOrDefault(e => e.Name == entityName);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        public static (string DbContextFullName, string DbSetName)? GetDbContextAndSet(string entityName)");
-            sb.AppendLine("        {");
-            foreach (var (dbContext, entities) in allEntities)
-            {
-                foreach (var entity in entities)
-                {
-                    sb.AppendLine($"            if (entityName == \"{entity.Name}\")");
-                    sb.AppendLine("            {");
-                    sb.AppendLine($"                return (\"{entity.DbContextFullName}\", \"{entity.DbSetName}\");");
-                    sb.AppendLine("            }");
-                }
-            }
-            sb.AppendLine("            return null;");
-            sb.AppendLine("        }");
-            sb.AppendLine("    }");
-            sb.AppendLine();
-            sb.AppendLine("    public class EntityMetadataInfo");
-            sb.AppendLine("    {");
-            sb.AppendLine("        public string Name { get; set; } = string.Empty;");
-            sb.AppendLine("        public string FullName { get; set; } = string.Empty;");
-            sb.AppendLine("        public string DbSetName { get; set; } = string.Empty;");
-            sb.AppendLine("        public string KeyProperty { get; set; } = string.Empty;");
-            sb.AppendLine("        public string DbContextName { get; set; } = string.Empty;");
-            sb.AppendLine("        public string DbContextFullName { get; set; } = string.Empty;");
-            sb.AppendLine("        public List<PropertyMetadataInfo> Properties { get; set; } = new();");
-            sb.AppendLine("        public List<ApiEndpointInfo> ApiEndpoints { get; set; } = new();");
-            sb.AppendLine("    }");
-            sb.AppendLine();
-            sb.AppendLine("    public class PropertyMetadataInfo");
-            sb.AppendLine("    {");
-            sb.AppendLine("        public string Name { get; set; } = string.Empty;");
-            sb.AppendLine("        public string Type { get; set; } = string.Empty;");
-            sb.AppendLine("        public string InputType { get; set; } = string.Empty;");
-            sb.AppendLine("        public bool IsKey { get; set; }");
-            sb.AppendLine("    }");
-            sb.AppendLine();
-            sb.AppendLine("    public class ApiEndpointInfo");
-            sb.AppendLine("    {");
-            sb.AppendLine("        public string Method { get; set; } = string.Empty;");
-            sb.AppendLine("        public string Path { get; set; } = string.Empty;");
-            sb.AppendLine("        public string Description { get; set; } = string.Empty;");
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
-
-            context.AddSource("EntityMetadata.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
-        }
-
-        private string GetInputType(string typeName)
-        {
-            var cleanType = typeName.TrimEnd('?').Split('.').Last();
-            
-            if (cleanType == "DateTime" || cleanType == "DateTimeOffset")
-                return "datetime-local";
-            if (cleanType == "DateOnly")
-                return "date";
-            if (cleanType == "TimeOnly")
-                return "time";
-            if (cleanType == "Boolean" || cleanType == "bool")
-                return "checkbox";
-            if (cleanType == "Int32" || cleanType == "Int64" || cleanType == "Int16" || cleanType == "Byte" ||
-                cleanType == "int" || cleanType == "long" || cleanType == "short" || cleanType == "byte")
-                return "number";
-            if (cleanType == "Decimal" || cleanType == "Double" || cleanType == "Single" ||
-                cleanType == "decimal" || cleanType == "double" || cleanType == "float")
-                return "number";
-            if (cleanType == "String" || cleanType == "string")
-                return "text";
-            if (cleanType == "Guid")
-                return "text";
-
-            return "text";
-        }
-
-        private void GenerateEntityEndpoints(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
+        // Removed - now in Generators.EntityEndpointsGenerator
+        private void GenerateEntityEndpoints_OLD(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
         {
             // Generate endpoint mapping methods for all entities
             var sb = new StringBuilder();
@@ -692,20 +323,50 @@ namespace DBAdminPanel.SourceGenerator
             sb.AppendLine("        {");
             sb.AppendLine("            var group = app.MapGroup(\"DBAdminPanel/api\");");
             sb.AppendLine();
-            sb.AppendLine("            group.MapGet(\"metadata\", () =>");
+            sb.AppendLine("            group.MapGet(\"metadata\", (IServiceProvider serviceProvider) =>");
             sb.AppendLine("            {");
             sb.AppendLine("                var entities = EntityMetadata.GetAllEntities();");
-            sb.AppendLine("                return Results.Ok(entities.Select(e => new");
+            sb.AppendLine("                using var scope = serviceProvider.CreateScope();");
+            sb.AppendLine("                var scopedProvider = scope.ServiceProvider;");
+            sb.AppendLine();
+            sb.AppendLine("                // Materialize results before scope is disposed");
+            sb.AppendLine("                var result = entities.Select(e =>");
             sb.AppendLine("                {");
-            sb.AppendLine("                    name = e.Name,");
-            sb.AppendLine("                    fullName = e.FullName,");
-            sb.AppendLine("                    dbSetName = e.DbSetName,");
-            sb.AppendLine("                    keyProperty = e.KeyProperty,");
-            sb.AppendLine("                    dbContextName = e.DbContextName,");
-            sb.AppendLine("                    dbContextFullName = e.DbContextFullName,");
-            sb.AppendLine("                    properties = e.Properties,");
-            sb.AppendLine("                    apiEndpoints = e.ApiEndpoints");
-            sb.AppendLine("                }));");
+            sb.AppendLine("                    // Get DbContext for this entity to detect database type");
+            sb.AppendLine("                    Microsoft.EntityFrameworkCore.DbContext? dbContext = null;");
+            
+            // Generate code to get DbContext for each entity
+            foreach (var (dbContext, entities) in allEntities)
+            {
+                var dbContextFullName = dbContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var dbContextName = dbContext.Name;
+                foreach (var entity in entities)
+                {
+                    sb.AppendLine($"                    if (e.DbContextName == \"{dbContextName}\" || e.DbContextName == \"{dbContextName.Replace("DbContext", "")}\")");
+                    sb.AppendLine("                    {");
+                    sb.AppendLine($"                        dbContext = scopedProvider.GetService<{dbContextFullName}>();");
+                    sb.AppendLine("                    }");
+                }
+            }
+            
+            sb.AppendLine();
+            sb.AppendLine("                    var databaseType = DatabaseTypeDetector.GetDatabaseType(dbContext);");
+            sb.AppendLine();
+            sb.AppendLine("                    return new");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        name = e.Name,");
+            sb.AppendLine("                        fullName = e.FullName,");
+            sb.AppendLine("                        dbSetName = e.DbSetName,");
+            sb.AppendLine("                        keyProperty = e.KeyProperty,");
+            sb.AppendLine("                        dbContextName = e.DbContextName,");
+            sb.AppendLine("                        dbContextFullName = e.DbContextFullName,");
+            sb.AppendLine("                        databaseType = databaseType,");
+            sb.AppendLine("                        properties = e.Properties,");
+            sb.AppendLine("                        apiEndpoints = e.ApiEndpoints");
+            sb.AppendLine("                    };");
+            sb.AppendLine("                }).ToList();");
+            sb.AppendLine();
+            sb.AppendLine("                return Results.Ok(result);");
             sb.AppendLine("            });");
             sb.AppendLine();
             sb.AppendLine("            group.MapGet(\"entities\", () =>");
@@ -724,10 +385,33 @@ namespace DBAdminPanel.SourceGenerator
             sb.AppendLine("                }));");
             sb.AppendLine("            });");
             sb.AppendLine();
-            sb.AppendLine("            group.MapGet(\"metadata/{entityName}\", (string entityName) =>");
+            sb.AppendLine("            group.MapGet(\"metadata/{entityName}\", (string entityName, IServiceProvider serviceProvider) =>");
             sb.AppendLine("            {");
             sb.AppendLine("                var metadata = EntityMetadata.GetEntityMetadata(entityName);");
             sb.AppendLine("                if (metadata == null) return Results.NotFound();");
+            sb.AppendLine();
+            sb.AppendLine("                // Get DbContext for this entity to detect database type");
+            sb.AppendLine("                Microsoft.EntityFrameworkCore.DbContext? dbContext = null;");
+            sb.AppendLine("                using var scope = serviceProvider.CreateScope();");
+            sb.AppendLine("                var scopedProvider = scope.ServiceProvider;");
+            
+            // Generate code to get DbContext for each entity
+            foreach (var (dbContext, entities) in allEntities)
+            {
+                var dbContextFullName = dbContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var dbContextName = dbContext.Name;
+                foreach (var entity in entities)
+                {
+                    sb.AppendLine($"                if (metadata.DbContextName == \"{dbContextName}\" || metadata.DbContextName == \"{dbContextName.Replace("DbContext", "")}\")");
+                    sb.AppendLine("                {");
+                    sb.AppendLine($"                    dbContext = scopedProvider.GetService<{dbContextFullName}>();");
+                    sb.AppendLine("                }");
+                }
+            }
+            
+            sb.AppendLine();
+            sb.AppendLine("                var databaseType = DatabaseTypeDetector.GetDatabaseType(dbContext);");
+            sb.AppendLine();
             sb.AppendLine("                return Results.Ok(new");
             sb.AppendLine("                {");
             sb.AppendLine("                    name = metadata.Name,");
@@ -736,6 +420,7 @@ namespace DBAdminPanel.SourceGenerator
             sb.AppendLine("                    keyProperty = metadata.KeyProperty,");
             sb.AppendLine("                    dbContextName = metadata.DbContextName,");
             sb.AppendLine("                    dbContextFullName = metadata.DbContextFullName,");
+            sb.AppendLine("                    databaseType = databaseType,");
             sb.AppendLine("                    properties = metadata.Properties,");
             sb.AppendLine("                    apiEndpoints = metadata.ApiEndpoints");
             sb.AppendLine("                });");
@@ -805,38 +490,450 @@ namespace DBAdminPanel.SourceGenerator
 
             context.AddSource("DashboardEndpoints.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
-    }
 
-    internal class DbContextSyntaxReceiver : ISyntaxReceiver
-    {
-        public List<ClassDeclarationSyntax> DbContextCandidates { get; } = new();
-
-        public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
+        private void GenerateDiagramEndpoints(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
         {
-            if (syntaxNode is ClassDeclarationSyntax classDeclaration)
+            var sb = new StringBuilder();
+            sb.AppendLine("using Microsoft.AspNetCore.Builder;");
+            sb.AppendLine("using Microsoft.AspNetCore.Http;");
+            sb.AppendLine("using Microsoft.EntityFrameworkCore;");
+            sb.AppendLine("using Microsoft.EntityFrameworkCore.Metadata;");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine("using System.Collections.Generic;");
+            sb.AppendLine("using System.Linq;");
+            sb.AppendLine("using System.Reflection;");
+            sb.AppendLine("using System.IO;");
+            sb.AppendLine("using DBAdminPanel.Generated;");
+            sb.AppendLine();
+            sb.AppendLine("namespace DBAdminPanel.Generated.Endpoints");
+            sb.AppendLine("{");
+            sb.AppendLine("    public static class DiagramEndpoints");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public static void MapDiagramEndpoints(this WebApplication app)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            var group = app.MapGroup(\"DBAdminPanel/api\");");
+            sb.AppendLine();
+            sb.AppendLine("            group.MapGet(\"diagram\", (IServiceProvider serviceProvider) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var diagramData = new List<DiagramTableInfo>();");
+            sb.AppendLine("                var allEntities = EntityMetadata.GetAllEntities();");
+            sb.AppendLine("                System.Console.WriteLine($\"Diagram endpoint called. Found {allEntities.Count} entities in metadata.\");");
+            sb.AppendLine();
+            
+            // Generate code to get DbContext instances and extract model metadata
+            foreach (var (dbContext, entities) in allEntities)
             {
-                DbContextCandidates.Add(classDeclaration);
+                var dbContextVarName = dbContext.Name.ToLowerInvariant();
+                var dbContextName = dbContext.Name;
+                sb.AppendLine($"                // Process {dbContextName}");
+                sb.AppendLine($"                try");
+                sb.AppendLine("                {");
+                sb.AppendLine($"                    using var {dbContextVarName}Scope = serviceProvider.CreateScope();");
+                sb.AppendLine($"                    var {dbContextVarName}Service = {dbContextVarName}Scope.ServiceProvider.GetService<{dbContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>();");
+                sb.AppendLine($"                    if ({dbContextVarName}Service != null)");
+                sb.AppendLine("                    {");
+                sb.AppendLine($"                        var {dbContextVarName}Model = {dbContextVarName}Service.Model;");
+                sb.AppendLine($"                        var {dbContextVarName}EntityTypes = {dbContextVarName}Model.GetEntityTypes().ToList();");
+                sb.AppendLine();
+                
+                foreach (var entity in entities)
+                {
+                    var entityVarName = entity.Name.ToLowerInvariant();
+                    sb.AppendLine($"                        // Process {entity.Name}");
+                    sb.AppendLine($"                        var {entityVarName}EntityType = {dbContextVarName}EntityTypes.FirstOrDefault(et => et.ClrType.FullName == \"{entity.FullName}\" || et.ClrType.Name == \"{entity.Name}\");");
+                    sb.AppendLine($"                        if ({entityVarName}EntityType != null)");
+                    sb.AppendLine("                        {");
+                    sb.AppendLine($"                            var {entityVarName}Table = new DiagramTableInfo");
+                    sb.AppendLine("                            {");
+                    sb.AppendLine($"                                Name = \"{entity.Name}\",");
+                    sb.AppendLine($"                                FullName = {entityVarName}EntityType.ClrType.FullName ?? \"{entity.FullName}\",");
+                    sb.AppendLine($"                                TableName = {entityVarName}EntityType.GetTableName() ?? \"{entity.Name}\",");
+                    sb.AppendLine($"                                DbContextName = \"{entity.DbContextName}\",");
+                    sb.AppendLine($"                                ModelFilePath = GetModelFilePath({entityVarName}EntityType.ClrType.FullName ?? \"{entity.FullName}\"),");
+                    sb.AppendLine($"                                Columns = {entityVarName}EntityType.GetProperties().Select(p => new DiagramColumnInfo");
+                    sb.AppendLine("                                {");
+                    sb.AppendLine("                                    Name = p.Name,");
+                    sb.AppendLine("                                    Type = p.ClrType.Name,");
+                    sb.AppendLine("                                    FullType = p.ClrType.FullName ?? p.ClrType.Name,");
+                    sb.AppendLine("                                    IsNullable = p.IsNullable,");
+                    sb.AppendLine("                                    IsPrimaryKey = p.IsPrimaryKey(),");
+                    sb.AppendLine("                                    IsForeignKey = p.IsForeignKey()");
+                    sb.AppendLine("                                }).ToList(),");
+                    sb.AppendLine($"                                Relations = {entityVarName}EntityType.GetForeignKeys().Select(fk => new DiagramRelationInfo");
+                    sb.AppendLine("                                {");
+                    sb.AppendLine("                                    FromTable = fk.DeclaringEntityType.GetTableName() ?? fk.DeclaringEntityType.ClrType.Name,");
+                    sb.AppendLine("                                    ToTable = fk.PrincipalEntityType.GetTableName() ?? fk.PrincipalEntityType.ClrType.Name,");
+                    sb.AppendLine("                                    FromColumn = string.Join(\",\", fk.Properties.Select(p => p.GetColumnName() ?? p.Name)),");
+                    sb.AppendLine("                                    ToColumn = string.Join(\",\", fk.PrincipalKey.Properties.Select(p => p.GetColumnName() ?? p.Name)),");
+                    sb.AppendLine("                                    RelationshipType = fk.IsRequired ? \"OneToOne\" : \"OneToMany\"");
+                    sb.AppendLine("                                }).ToList()");
+                    sb.AppendLine("                            };");
+                    sb.AppendLine($"                            diagramData.Add({entityVarName}Table);");
+                    sb.AppendLine("                        }");
+                }
+                
+                sb.AppendLine("                    }");
+                sb.AppendLine("                }");
+                sb.AppendLine("                catch (System.Exception ex)");
+                sb.AppendLine("                {");
+                sb.AppendLine("                    // DbContext may not be registered or available");
+                sb.AppendLine($"                    System.Console.WriteLine($\"Error processing {dbContextName}: {{ex.Message}}\");");
+                sb.AppendLine("                }");
             }
+            
+            sb.AppendLine();
+            sb.AppendLine("                // Fallback: If no data from DbContext, use metadata from EntityMetadata");
+            sb.AppendLine("                if (diagramData.Count == 0)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    System.Console.WriteLine($\"No data from DbContext, using fallback. EntityMetadata has {allEntities.Count} entities.\");");
+            sb.AppendLine("                    if (allEntities.Count > 0)");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        foreach (var entityMetadata in allEntities)");
+            sb.AppendLine("                        {");
+            sb.AppendLine("                            try");
+            sb.AppendLine("                            {");
+            sb.AppendLine("                                diagramData.Add(new DiagramTableInfo");
+            sb.AppendLine("                                {");
+            sb.AppendLine("                                    Name = entityMetadata.Name,");
+            sb.AppendLine("                                    FullName = entityMetadata.FullName,");
+            sb.AppendLine("                                    TableName = entityMetadata.Name,");
+            sb.AppendLine("                                    DbContextName = entityMetadata.DbContextName,");
+            sb.AppendLine("                                    ModelFilePath = GetModelFilePath(entityMetadata.FullName),");
+            sb.AppendLine("                                    Columns = entityMetadata.Properties?.Select(p => new DiagramColumnInfo");
+            sb.AppendLine("                                    {");
+            sb.AppendLine("                                        Name = p.Name,");
+            sb.AppendLine("                                        Type = p.Type.Split('.').LastOrDefault() ?? p.Type,");
+            sb.AppendLine("                                        FullType = p.Type,");
+            sb.AppendLine("                                        IsNullable = !p.Type.Contains(\"System.String\") && p.Type.EndsWith(\"?\"),");
+            sb.AppendLine("                                        IsPrimaryKey = p.IsKey,");
+            sb.AppendLine("                                        IsForeignKey = false");
+            sb.AppendLine("                                    }).ToList() ?? new List<DiagramColumnInfo>(),");
+            sb.AppendLine("                                    Relations = new List<DiagramRelationInfo>()");
+            sb.AppendLine("                                });");
+            sb.AppendLine("                            }");
+            sb.AppendLine("                            catch (System.Exception ex)");
+            sb.AppendLine("                            {");
+            sb.AppendLine("                                System.Console.WriteLine($\"Error processing entity {entityMetadata.Name}: {ex.Message}\");");
+            sb.AppendLine("                            }");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine();
+            sb.AppendLine("                System.Console.WriteLine($\"Returning {diagramData.Count} tables in diagram data.\");");
+            sb.AppendLine("                return Results.Ok(diagramData);");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        private static string GetModelFilePath(string fullTypeName)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            try");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var entryAssembly = Assembly.GetEntryAssembly();");
+            sb.AppendLine("                if (entryAssembly == null) return string.Empty;");
+            sb.AppendLine();
+            sb.AppendLine("                var type = entryAssembly.GetType(fullTypeName);");
+            sb.AppendLine("                if (type == null)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    // Try to find in all loaded assemblies");
+            sb.AppendLine("                    foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        type = assembly.GetType(fullTypeName);");
+            sb.AppendLine("                        if (type != null) break;");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine();
+            sb.AppendLine("                if (type == null) return string.Empty;");
+            sb.AppendLine();
+            sb.AppendLine("                // Try to get source file path from debug symbols");
+            sb.AppendLine("                var location = type.Assembly.Location;");
+            sb.AppendLine("                if (string.IsNullOrEmpty(location)) return string.Empty;");
+            sb.AppendLine();
+            sb.AppendLine("                var assemblyDir = Path.GetDirectoryName(location);");
+            sb.AppendLine("                if (string.IsNullOrEmpty(assemblyDir)) return string.Empty;");
+            sb.AppendLine();
+            sb.AppendLine("                // Try to find source file in common locations");
+            sb.AppendLine("                var typeName = type.Name;");
+            sb.AppendLine("                var possiblePaths = new[]");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    Path.Combine(assemblyDir, \"..\", \"..\", \"..\", \"..\", \"Models\", $\"{typeName}.cs\"),");
+            sb.AppendLine("                    Path.Combine(assemblyDir, \"..\", \"..\", \"..\", \"..\", \"..\", \"Models\", $\"{typeName}.cs\"),");
+            sb.AppendLine("                    Path.Combine(assemblyDir, \"..\", \"..\", \"..\", \"Models\", $\"{typeName}.cs\"),");
+            sb.AppendLine("                    Path.Combine(Directory.GetCurrentDirectory(), \"Models\", $\"{typeName}.cs\"),");
+            sb.AppendLine("                    Path.Combine(Directory.GetCurrentDirectory(), \"src\", \"**\", \"Models\", $\"{typeName}.cs\")");
+            sb.AppendLine("                };");
+            sb.AppendLine();
+            sb.AppendLine("                foreach (var path in possiblePaths)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    if (path.Contains(\"**\"))");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        var searchDir = Path.GetDirectoryName(path.Replace(\"**\", \"\"));");
+            sb.AppendLine("                        if (Directory.Exists(searchDir))");
+            sb.AppendLine("                        {");
+            sb.AppendLine("                            var found = Directory.GetFiles(searchDir, $\"{typeName}.cs\", SearchOption.AllDirectories).FirstOrDefault();");
+            sb.AppendLine("                            if (found != null)");
+            sb.AppendLine("                            {");
+            sb.AppendLine("                                return Path.GetRelativePath(Directory.GetCurrentDirectory(), found).Replace(Path.DirectorySeparatorChar, '/');");
+            sb.AppendLine("                            }");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                    else if (File.Exists(path))");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        return Path.GetRelativePath(Directory.GetCurrentDirectory(), path).Replace(Path.DirectorySeparatorChar, '/');");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine();
+            sb.AppendLine("                // Fallback: return namespace-based path");
+            sb.AppendLine("                var namespaceParts = type.Namespace?.Split('.') ?? Array.Empty<string>();");
+            sb.AppendLine("                if (namespaceParts.Length > 0)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    var relativePath = string.Join(\"/\", namespaceParts.Skip(1).Concat(new[] { $\"{typeName}.cs\" }));");
+            sb.AppendLine("                    return relativePath;");
+            sb.AppendLine("                }");
+            sb.AppendLine();
+            sb.AppendLine("                return string.Empty;");
+            sb.AppendLine("            }");
+            sb.AppendLine("            catch");
+            sb.AppendLine("            {");
+            sb.AppendLine("                return string.Empty;");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    public class DiagramTableInfo");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public string Name { get; set; } = string.Empty;");
+            sb.AppendLine("        public string FullName { get; set; } = string.Empty;");
+            sb.AppendLine("        public string TableName { get; set; } = string.Empty;");
+            sb.AppendLine("        public string DbContextName { get; set; } = string.Empty;");
+            sb.AppendLine("        public string ModelFilePath { get; set; } = string.Empty;");
+            sb.AppendLine("        public List<DiagramColumnInfo> Columns { get; set; } = new();");
+            sb.AppendLine("        public List<DiagramRelationInfo> Relations { get; set; } = new();");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    public class DiagramColumnInfo");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public string Name { get; set; } = string.Empty;");
+            sb.AppendLine("        public string Type { get; set; } = string.Empty;");
+            sb.AppendLine("        public string FullType { get; set; } = string.Empty;");
+            sb.AppendLine("        public bool IsNullable { get; set; }");
+            sb.AppendLine("        public bool IsPrimaryKey { get; set; }");
+            sb.AppendLine("        public bool IsForeignKey { get; set; }");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    public class DiagramRelationInfo");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public string FromTable { get; set; } = string.Empty;");
+            sb.AppendLine("        public string ToTable { get; set; } = string.Empty;");
+            sb.AppendLine("        public string FromColumn { get; set; } = string.Empty;");
+            sb.AppendLine("        public string ToColumn { get; set; } = string.Empty;");
+            sb.AppendLine("        public string RelationshipType { get; set; } = string.Empty;");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+
+            context.AddSource("DiagramEndpoints.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        }
+
+        private void GenerateSqlExecutionEndpoints(GeneratorExecutionContext context, List<(INamedTypeSymbol DbContext, List<EntityInfo> Entities)> allEntities)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("using Microsoft.AspNetCore.Builder;");
+            sb.AppendLine("using Microsoft.AspNetCore.Http;");
+            sb.AppendLine("using Microsoft.EntityFrameworkCore;");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine("using System.Linq;");
+            sb.AppendLine("using System.Reflection;");
+            sb.AppendLine();
+            sb.AppendLine("namespace DBAdminPanel.Generated.Endpoints");
+            sb.AppendLine("{");
+            sb.AppendLine("    public static class SqlExecutionEndpoints");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public static void MapSqlExecutionEndpoints(this WebApplication app)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            var group = app.MapGroup(\"DBAdminPanel/api\");");
+            sb.AppendLine();
+            sb.AppendLine("            group.MapPost(\"sql/execute\", async (HttpContext context, IServiceProvider serviceProvider) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                try");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    using var streamReader = new System.IO.StreamReader(context.Request.Body);");
+            sb.AppendLine("                    var body = await streamReader.ReadToEndAsync();");
+            sb.AppendLine("                    var request = System.Text.Json.JsonSerializer.Deserialize<SqlExecutionRequest>(body, new System.Text.Json.JsonSerializerOptions");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        PropertyNameCaseInsensitive = true");
+            sb.AppendLine("                    });");
+            sb.AppendLine();
+            sb.AppendLine("                    if (request == null || string.IsNullOrWhiteSpace(request.Sql))");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        return Results.BadRequest(new { message = \"SQL query is required\" });");
+            sb.AppendLine("                    }");
+            sb.AppendLine();
+            sb.AppendLine("                    // Use a scope to get DbContext instances");
+            sb.AppendLine("                    using var scope = serviceProvider.CreateScope();");
+            sb.AppendLine("                    var scopedProvider = scope.ServiceProvider;");
+            sb.AppendLine();
+            sb.AppendLine("                    Microsoft.EntityFrameworkCore.DbContext? targetDbContext = null;");
+            sb.AppendLine();
+            sb.AppendLine("                    // Find DbContext by name if provided");
+            sb.AppendLine("                    if (!string.IsNullOrWhiteSpace(request.DbContextName))");
+            sb.AppendLine("                    {");
+            
+            // Generate code to find DbContext by name
+            foreach (var (dbContext, entities) in allEntities)
+            {
+                var dbContextName = dbContext.Name;
+                var dbContextFullName = dbContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                sb.AppendLine($"                        if (request.DbContextName == \"{dbContextName}\" || request.DbContextName == \"{dbContextName.Replace("DbContext", "")}\")");
+                sb.AppendLine("                        {");
+                sb.AppendLine($"                            targetDbContext = scopedProvider.GetService<{dbContextFullName}>();");
+                sb.AppendLine("                            if (targetDbContext != null) goto FoundDbContext;");
+                sb.AppendLine("                        }");
+            }
+            
+            sb.AppendLine("                    }");
+            sb.AppendLine();
+            sb.AppendLine("                    // If no specific context requested or not found, get the first available DbContext");
+            sb.AppendLine("                    if (targetDbContext == null)");
+            sb.AppendLine("                    {");
+            
+            // Generate code to get first available DbContext
+            var firstDbContext = allEntities.FirstOrDefault();
+            if (firstDbContext.DbContext != null)
+            {
+                var dbContextFullName = firstDbContext.DbContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                sb.AppendLine($"                        targetDbContext = scopedProvider.GetService<{dbContextFullName}>();");
+            }
+            else
+            {
+                sb.AppendLine("                        // Try to get any DbContext from entry assembly");
+                sb.AppendLine("                        var entryAssembly = Assembly.GetEntryAssembly();");
+                sb.AppendLine("                        if (entryAssembly != null)");
+                sb.AppendLine("                        {");
+                sb.AppendLine("                            var dbContextTypes = entryAssembly.GetTypes()");
+                sb.AppendLine("                                .Where(t => typeof(Microsoft.EntityFrameworkCore.DbContext).IsAssignableFrom(t) && !t.IsAbstract)");
+                sb.AppendLine("                                .ToList();");
+                sb.AppendLine();
+                sb.AppendLine("                            foreach (var dbContextType in dbContextTypes)");
+                sb.AppendLine("                            {");
+                sb.AppendLine("                                try");
+                sb.AppendLine("                                {");
+                sb.AppendLine("                                    targetDbContext = scopedProvider.GetService(dbContextType) as Microsoft.EntityFrameworkCore.DbContext;");
+                sb.AppendLine("                                    if (targetDbContext != null) break;");
+                sb.AppendLine("                                }");
+                sb.AppendLine("                                catch");
+                sb.AppendLine("                                {");
+                sb.AppendLine("                                    // Continue to next type");
+                sb.AppendLine("                                }");
+                sb.AppendLine("                            }");
+                sb.AppendLine("                        }");
+            }
+            
+            sb.AppendLine("                    }");
+            sb.AppendLine();
+            sb.AppendLine("                    FoundDbContext:");
+            sb.AppendLine("                    if (targetDbContext == null)");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        return Results.BadRequest(new { message = \"No DbContext available\" });");
+            sb.AppendLine("                    }");
+            sb.AppendLine();
+            sb.AppendLine("                    var startTime = System.Diagnostics.Stopwatch.StartNew();");
+            sb.AppendLine("                    var sql = request.Sql.Trim();");
+            sb.AppendLine();
+            sb.AppendLine("                    // Check if query is a SELECT statement (returns results)");
+            sb.AppendLine("                    var isSelectQuery = sql.TrimStart().StartsWith(\"SELECT\", System.StringComparison.OrdinalIgnoreCase) ||");
+            sb.AppendLine("                                       sql.TrimStart().StartsWith(\"WITH\", System.StringComparison.OrdinalIgnoreCase) ||");
+            sb.AppendLine("                                       sql.TrimStart().StartsWith(\"SHOW\", System.StringComparison.OrdinalIgnoreCase) ||");
+            sb.AppendLine("                                       sql.TrimStart().StartsWith(\"DESCRIBE\", System.StringComparison.OrdinalIgnoreCase) ||");
+            sb.AppendLine("                                       sql.TrimStart().StartsWith(\"EXPLAIN\", System.StringComparison.OrdinalIgnoreCase);");
+            sb.AppendLine();
+            sb.AppendLine("                    if (isSelectQuery)");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        // Execute query and return results");
+            sb.AppendLine("                        using var command = targetDbContext.Database.GetDbConnection().CreateCommand();");
+            sb.AppendLine("                        command.CommandText = sql;");
+            sb.AppendLine("                        targetDbContext.Database.OpenConnection();");
+            sb.AppendLine();
+            sb.AppendLine("                        try");
+            sb.AppendLine("                        {");
+            sb.AppendLine("                            using var reader = await command.ExecuteReaderAsync();");
+            sb.AppendLine("                            var columns = new System.Collections.Generic.List<string>();");
+            sb.AppendLine("                            var rows = new System.Collections.Generic.List<object[]>();");
+            sb.AppendLine();
+            sb.AppendLine("                            // Get column names");
+            sb.AppendLine("                            for (int i = 0; i < reader.FieldCount; i++)");
+            sb.AppendLine("                            {");
+            sb.AppendLine("                                columns.Add(reader.GetName(i));");
+            sb.AppendLine("                            }");
+            sb.AppendLine();
+            sb.AppendLine("                            // Read rows");
+            sb.AppendLine("                            while (await reader.ReadAsync())");
+            sb.AppendLine("                            {");
+            sb.AppendLine("                                var row = new object[reader.FieldCount];");
+            sb.AppendLine("                                for (int i = 0; i < reader.FieldCount; i++)");
+            sb.AppendLine("                                {");
+            sb.AppendLine("                                    row[i] = reader.IsDBNull(i) ? null : reader.GetValue(i);");
+            sb.AppendLine("                                }");
+            sb.AppendLine("                                rows.Add(row);");
+            sb.AppendLine("                            }");
+            sb.AppendLine();
+            sb.AppendLine("                            startTime.Stop();");
+            sb.AppendLine();
+            sb.AppendLine("                            return Results.Json(new");
+            sb.AppendLine("                            {");
+            sb.AppendLine("                                hasResult = true,");
+            sb.AppendLine("                                columns = columns,");
+            sb.AppendLine("                                rows = rows,");
+            sb.AppendLine("                                rowCount = rows.Count,");
+            sb.AppendLine("                                executionTime = startTime.ElapsedMilliseconds");
+            sb.AppendLine("                            }, new System.Text.Json.JsonSerializerOptions");
+            sb.AppendLine("                            {");
+            sb.AppendLine("                                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase");
+            sb.AppendLine("                            });");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                        finally");
+            sb.AppendLine("                        {");
+            sb.AppendLine("                            targetDbContext.Database.CloseConnection();");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                    else");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        // Execute non-SELECT query (INSERT, UPDATE, DELETE, etc.)");
+            sb.AppendLine("                        var rowsAffected = await targetDbContext.Database.ExecuteSqlRawAsync(sql);");
+            sb.AppendLine("                        startTime.Stop();");
+            sb.AppendLine();
+            sb.AppendLine("                        return Results.Json(new");
+            sb.AppendLine("                        {");
+            sb.AppendLine("                            hasResult = false,");
+            sb.AppendLine("                            rowsAffected = rowsAffected,");
+            sb.AppendLine("                            executionTime = startTime.ElapsedMilliseconds");
+            sb.AppendLine("                        }, new System.Text.Json.JsonSerializerOptions");
+            sb.AppendLine("                        {");
+            sb.AppendLine("                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase");
+            sb.AppendLine("                        });");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine("                catch (System.Exception ex)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    return Results.Json(new { message = ex.Message, stackTrace = ex.StackTrace },");
+            sb.AppendLine("                        statusCode: 500,");
+            sb.AppendLine("                        options: new System.Text.Json.JsonSerializerOptions");
+            sb.AppendLine("                        {");
+            sb.AppendLine("                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase");
+            sb.AppendLine("                        });");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        private class SqlExecutionRequest");
+            sb.AppendLine("        {");
+            sb.AppendLine("            public string Sql { get; set; } = string.Empty;");
+            sb.AppendLine("            public string? DbContextName { get; set; }");
+            sb.AppendLine("        }");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+
+            context.AddSource("SqlExecutionEndpoints.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
     }
 
-    internal class EntityInfo
-    {
-        public string Name { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
-        public string DbSetName { get; set; } = string.Empty;
-        public string DbContextName { get; set; } = string.Empty;
-        public string DbContextFullName { get; set; } = string.Empty;
-        public string KeyProperty { get; set; } = string.Empty;
-        public string KeyPropertyType { get; set; } = string.Empty;
-        public List<PropertyInfo> Properties { get; set; } = new();
-    }
-
-    internal class PropertyInfo
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public bool IsKey { get; set; }
-    }
 }
 

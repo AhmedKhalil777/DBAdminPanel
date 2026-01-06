@@ -1,0 +1,440 @@
+.sql-execution-container {
+  width: 100%;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.sql-card {
+  background: rgba(26, 31, 58, 0.8) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.2) !important;
+}
+
+.sql-avatar {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sql-avatar mat-icon {
+  color: #0a0e27 !important;
+}
+
+.sql-input-container {
+  margin-bottom: 16px;
+}
+
+.sql-editor-wrapper {
+  display: flex;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+  background: #1a1f3a;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.line-numbers {
+  background: rgba(0, 212, 255, 0.1);
+  padding: 12px 8px;
+  text-align: right;
+  color: rgba(224, 224, 224, 0.5);
+  user-select: none;
+  min-width: 50px;
+  border-right: 1px solid rgba(0, 212, 255, 0.2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.line-number {
+  height: 21px;
+  line-height: 21px;
+}
+
+.sql-editor {
+  flex: 1;
+  position: relative;
+  overflow: visible;
+}
+
+.highlighted-code {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
+  pointer-events: none;
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: 'Courier New', monospace;
+}
+
+/* Make all text transparent by default, but allow spans to override */
+.highlighted-code {
+  color: transparent;
+}
+
+.sql-input {
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  color: rgba(224, 224, 224, 0.9);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  z-index: 1;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  tab-size: 2;
+}
+
+.sql-input::placeholder {
+  color: rgba(224, 224, 224, 0.4);
+}
+
+/* SQL Syntax Highlighting - Using CSS Variables for theming */
+::ng-deep .highlighted-code .sql-keyword {
+  color: var(--sql-keyword-color, #00d4ff) !important;
+  font-weight: 600;
+}
+
+::ng-deep .highlighted-code .sql-function {
+  color: var(--sql-function-color, #4fc3f7) !important;
+  font-weight: 500;
+}
+
+::ng-deep .highlighted-code .sql-string {
+  color: var(--sql-string-color, #81c784) !important;
+}
+
+::ng-deep .highlighted-code .sql-number {
+  color: var(--sql-number-color, #ffb74d) !important;
+}
+
+::ng-deep .highlighted-code .sql-comment {
+  color: var(--sql-comment-color, #78909c) !important;
+  font-style: italic;
+}
+
+/* Theme menu active item */
+.active-theme {
+  font-weight: 600;
+}
+
+/* Autocomplete Dropdown */
+.autocomplete-dropdown {
+  position: absolute;
+  z-index: 1000;
+  background: rgba(26, 31, 58, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3);
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 250px;
+  max-width: 400px;
+  font-family: 'Courier New', monospace;
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  transition: background-color 0.2s;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+  background: rgba(0, 212, 255, 0.2);
+}
+
+.autocomplete-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  margin-right: 12px;
+  color: rgba(0, 212, 255, 0.7);
+}
+
+.autocomplete-item.function .autocomplete-icon {
+  color: #4fc3f7;
+}
+
+.autocomplete-item.table .autocomplete-icon {
+  color: #00d4ff;
+}
+
+.autocomplete-item.column .autocomplete-icon {
+  color: #81c784;
+}
+
+.autocomplete-item.keyword .autocomplete-icon {
+  color: #00d4ff;
+}
+
+.autocomplete-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.autocomplete-label {
+  color: rgba(224, 224, 224, 0.9);
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.autocomplete-description {
+  color: rgba(224, 224, 224, 0.6);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Autocomplete scrollbar */
+.autocomplete-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.autocomplete-dropdown::-webkit-scrollbar-track {
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 4px;
+}
+
+.autocomplete-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+}
+
+.autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
+}
+
+.sql-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sample-description {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.execution-time {
+  margin-left: auto;
+}
+
+.executing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(224, 224, 224, 0.9);
+  margin-bottom: 16px;
+}
+
+.result-divider,
+.log-divider {
+  margin: 24px 0;
+}
+
+.result-section {
+  margin-top: 16px;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.result-header h3 {
+  margin: 0;
+  color: rgba(224, 224, 224, 0.9);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.table-container {
+  overflow-x: auto;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 4px;
+}
+
+.result-table {
+  width: 100%;
+  background: rgba(15, 20, 25, 0.5);
+}
+
+.result-table th {
+  background: rgba(0, 212, 255, 0.1);
+  color: #00d4ff;
+  font-weight: 600;
+  padding: 12px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.result-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  color: rgba(224, 224, 224, 0.9);
+}
+
+.result-table tr:hover {
+  background: rgba(0, 212, 255, 0.05);
+}
+
+.row-count,
+.rows-affected {
+  margin-left: 12px;
+}
+
+.logs-section {
+  margin-top: 16px;
+}
+
+.logs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.logs-header h3 {
+  margin: 0;
+  color: rgba(224, 224, 224, 0.9);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.logs-container {
+  background: rgba(15, 20, 25, 0.5);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 4px;
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 100px 80px 1fr;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-timestamp {
+  color: rgba(224, 224, 224, 0.6);
+}
+
+.log-level {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.log-info .log-level {
+  color: #64b5f6;
+}
+
+.log-success .log-level {
+  color: #81c784;
+}
+
+.log-warning .log-level {
+  color: #ffb74d;
+}
+
+.log-error .log-level {
+  color: #e57373;
+}
+
+.log-message {
+  color: rgba(224, 224, 224, 0.9);
+}
+
+.log-info .log-message {
+  color: rgba(224, 224, 224, 0.8);
+}
+
+.log-success .log-message {
+  color: #81c784;
+}
+
+.log-warning .log-message {
+  color: #ffb74d;
+}
+
+.log-error .log-message {
+  color: #e57373;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar styling */
+.logs-container::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.logs-container::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track {
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 4px;
+}
+
+.logs-container::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+}
+
+.logs-container::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
+}
+

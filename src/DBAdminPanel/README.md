@@ -78,3 +78,4 @@ The source generator:
 - All generated code is placed in the `DBAdminPanel.Generated` namespace
 
 
+

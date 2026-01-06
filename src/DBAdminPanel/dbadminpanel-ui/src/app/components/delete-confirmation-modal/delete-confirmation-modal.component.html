@@ -1,0 +1,49 @@
+<div class="delete-modal">
+  <mat-card class="delete-card">
+    <mat-card-header>
+      <mat-card-title>Confirm Delete</mat-card-title>
+      <mat-card-subtitle>This action cannot be undone</mat-card-subtitle>
+      <div class="spacer"></div>
+      <button mat-icon-button (click)="onCancel()" class="close-button">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-content>
+      <div class="delete-content">
+        <p class="delete-message">
+          Are you sure you want to delete this <strong>{{ data.entityName }}</strong>?
+        </p>
+        @if (data.displayName) {
+          <p class="delete-entity-name">{{ data.displayName }}</p>
+        }
+        <p class="delete-warning">
+          This action is permanent and cannot be undone.
+        </p>
+      </div>
+    </mat-card-content>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-actions class="delete-actions">
+      <button 
+        mat-stroked-button 
+        (click)="onCancel()"
+        class="cancel-button">
+        <mat-icon>cancel</mat-icon>
+        Cancel
+      </button>
+      <button 
+        mat-raised-button 
+        color="warn" 
+        (click)="onConfirm()"
+        class="confirm-button">
+        <mat-icon>delete</mat-icon>
+        Delete
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>
+
