@@ -671,8 +671,9 @@ export class SqlExecutionComponent implements AfterViewInit {
     }
 
     // Note: This fallback should ideally not be needed if backend provides samples
-    // But we'll use entity name as table name and property names as column names
-    const tableName = metadata.name;
+    // Use dbSetName (actual table name) instead of entity name (class name)
+    // dbSetName contains the actual database table name (e.g., "Users" not "User")
+    const tableName = metadata.dbSetName || metadata.name;
     const keyProperty = metadata.keyProperty;
     const dbType = metadata.databaseType || 'PostgreSQL'; // Default to PostgreSQL
     const properties = metadata.properties.filter(p => !p.isKey);

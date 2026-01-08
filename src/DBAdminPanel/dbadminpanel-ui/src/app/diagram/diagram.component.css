@@ -96,19 +96,51 @@
   overflow-x: auto;
 }
 
+.diagram-card mat-card-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.diagram-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-level {
+  min-width: 50px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+}
+
 .mermaid-container {
   min-height: 400px;
+  max-height: 80vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: white;
+  background-color: var(--app-bg-secondary, white);
   border-radius: 4px;
   padding: 16px;
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+  user-select: none;
+  transition: background-color 0.3s ease;
+}
+
+.mermaid-container:active {
+  cursor: grabbing;
 }
 
 .mermaid-container svg {
   max-width: 100%;
   height: auto;
+  transition: transform 0.1s ease-out;
 }
 
 .no-data-message {

@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { EntityMetadata } from './api.service';
+import { TypeUtilsService } from './type-utils.service';
 
 export interface AutocompleteItem {
   label: string;
@@ -12,6 +13,7 @@ export interface AutocompleteItem {
   providedIn: 'root'
 })
 export class SqlAutocompleteService {
+  private typeUtils = inject(TypeUtilsService);
   private readonly sqlFunctions = [
     { name: 'ABS', description: 'Returns the absolute value of a number' },
     { name: 'ACOS', description: 'Returns the arccosine of a number' },
@@ -89,8 +91,9 @@ export class SqlAutocompleteService {
     
     if (context === 'table' || context === 'general' || context === 'from') {
       // Add table names from metadata
+      // Use dbSetName (actual table name) instead of entity name (class name)
       if (entityMetadata) {
-        const tableName = entityMetadata.name;
+        const tableName = entityMetadata.dbSetName || entityMetadata.name;
         if (tableName.toLowerCase().startsWith(lowerWord)) {
           suggestions.push({
             label: tableName,
@@ -111,7 +114,7 @@ export class SqlAutocompleteService {
               label: prop.name,
               value: `"${prop.name}"`,
               type: 'column',
-              description: `${prop.name} (${prop.type})`
+              description: `${prop.name} (${this.typeUtils.getDisplayType(prop.type)})`
             });
         }
         });
@@ -214,7 +217,8 @@ export class SqlAutocompleteService {
     
     if (context === 'table' || context === 'general' || context === 'from') {
       if (entityMetadata) {
-        const tableName = entityMetadata.name;
+        // Use dbSetName (actual table name) instead of entity name (class name)
+        const tableName = entityMetadata.dbSetName || entityMetadata.name;
         if (!lowerWord || tableName.toLowerCase().startsWith(lowerWord)) {
           suggestions.push({
             label: tableName,
@@ -234,7 +238,7 @@ export class SqlAutocompleteService {
               label: prop.name,
               value: `"${prop.name}"`,
               type: 'column',
-              description: `${prop.name} (${prop.type})`
+              description: `${prop.name} (${this.typeUtils.getDisplayType(prop.type)})`
             });
           }
         });

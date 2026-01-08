@@ -1,0 +1,56 @@
+.datetime-picker-dialog {
+  min-width: 400px;
+}
+
+.dialog-avatar {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-avatar mat-icon {
+  color: #ffffff !important;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.picker-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px 0;
+}
+
+.date-section {
+  width: 100%;
+}
+
+.time-section {
+  width: 100%;
+}
+
+.time-selectors {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.time-selectors mat-form-field {
+  flex: 1;
+}
+
+mat-card-actions {
+  padding: 16px;
+  margin: 0;
+}
+
+mat-card-actions button {
+  min-width: 100px;
+}
+
+mat-card-actions mat-icon {
+  margin-right: 4px;
+}
+

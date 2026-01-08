@@ -10,7 +10,14 @@ public class CategoryDbContext : DbContext
     }
 
     public DbSet<Category> Categories { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema("categories");
+    }
 }
+
 
 
 

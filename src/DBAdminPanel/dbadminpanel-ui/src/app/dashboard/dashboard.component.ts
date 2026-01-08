@@ -15,6 +15,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService, EntityMetadata } from '../services/api.service';
 import { EntityTableComponent } from '../components/entity-table/entity-table.component';
+import { AppThemeService } from '../services/app-theme.service';
 import { filter } from 'rxjs/operators';
 
 interface TreeNode {
@@ -60,6 +61,7 @@ export class DashboardComponent implements OnInit {
   router = inject(Router);
   route = inject(ActivatedRoute);
   private apiService = inject(ApiService);
+  themeService = inject(AppThemeService);
   
   constructor() {
     // Listen to route changes to update selected entity

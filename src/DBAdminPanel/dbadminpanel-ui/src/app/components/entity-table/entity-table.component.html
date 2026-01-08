@@ -7,89 +7,244 @@
       <mat-card-title>{{ entityMetadata().name }}</mat-card-title>
       <mat-card-subtitle>{{ entityMetadata().properties.length }} properties</mat-card-subtitle>
       <div class="spacer"></div>
-      <button 
-        mat-raised-button 
-        color="primary" 
-        (click)="createNew()"
-        class="create-button">
-        <mat-icon>add</mat-icon>
-        Create New
-      </button>
     </mat-card-header>
 
     <mat-card-content>
-      @if (showCreateForm()) {
-        <div class="form-overlay">
-          <app-entity-form
-            [entityMetadata]="entityMetadata()"
-            [entity]="editingEntity()"
-            (save)="onSave()"
-            (cancel)="onCancel()">
-          </app-entity-form>
-        </div>
-      }
-
       @if (isLoading()) {
         <div class="loading-container">
           <mat-spinner diameter="50"></mat-spinner>
           <p>Loading data...</p>
         </div>
-      } @else if (isEmpty()) {
-        <div class="empty-state">
-          <mat-icon class="empty-icon">inbox</mat-icon>
-          <h3>No records found</h3>
-          <p>Get started by creating a new {{ entityMetadata().name }} record.</p>
-          <button mat-raised-button color="primary" (click)="createNew()">
-            <mat-icon>add</mat-icon>
-            Create First Record
-          </button>
-        </div>
-      } @else if (showTable()) {
+      } @else if (showTable() || isEmpty()) {
         <div class="table-wrapper">
-        <table mat-table [dataSource]="paginatedData()" class="entity-table">
-          @for (prop of validProperties(); track trackByPropertyName($index, prop)) {
-            <ng-container [matColumnDef]="prop.name">
-              <th mat-header-cell *matHeaderCellDef>
-                <div class="header-cell">
-                  <mat-icon class="header-icon">{{ getPropertyIcon(prop.type) }}</mat-icon>
-                  {{ prop.name }}
-                  @if (prop.isKey) {
-                    <mat-chip class="key-chip">KEY</mat-chip>
+        <table class="entity-table native-table">
+          <thead>
+            <tr class="table-header-row">
+              @for (prop of validProperties(); track trackByPropertyName($index, prop)) {
+                <th class="table-header-cell">
+                  <div class="header-cell">
+                    <mat-icon class="header-icon">{{ getPropertyIcon(prop.type) }}</mat-icon>
+                    <span class="header-text">{{ prop.name }}</span>
+                    @if (prop.isKey) {
+                      <span class="key-badge">KEY</span>
+                    }
+                  </div>
+                </th>
+              }
+              <th class="table-header-cell actions-header">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of paginatedData(); track getRowId(row)) {
+              <tr class="table-row" [class.editing-row]="isEditing(getRowId(row))">
+                @for (prop of validProperties(); track trackByPropertyName($index, prop)) {
+                  <td class="table-cell" [class.key-cell]="prop.isKey">
+                    @if (isEditing(getRowId(row))) {
+                      @if (getFormGroup(getRowId(row)); as formGroup) {
+                        @if (getFormControl(formGroup, prop.name); as control) {
+                          <div class="editable-cell">
+                            @if (prop.inputType === 'checkbox' || prop.inputType === 'boolean') {
+                              <mat-checkbox 
+                                [formControl]="control"
+                                [disabled]="prop.isKey">
+                              </mat-checkbox>
+                            } @else if (prop.inputType === 'date') {
+                              <button 
+                                mat-stroked-button 
+                                type="button"
+                                (click)="openDatePicker(control, prop.name)"
+                                [disabled]="prop.isKey"
+                                class="date-time-button">
+                                <mat-icon>calendar_today</mat-icon>
+                                {{ formatDateValue(control.value) }}
+                              </button>
+                            } @else if (prop.inputType === 'datetime-local') {
+                              <button 
+                                mat-stroked-button 
+                                type="button"
+                                (click)="openDateTimePicker(control, prop.name)"
+                                [disabled]="prop.isKey"
+                                class="date-time-button">
+                                <mat-icon>event</mat-icon>
+                                {{ formatDateTimeValue(control.value) }}
+                              </button>
+                            } @else if (prop.inputType === 'time') {
+                              <button 
+                                mat-stroked-button 
+                                type="button"
+                                (click)="openTimePicker(control, prop.name)"
+                                [disabled]="prop.isKey"
+                                class="date-time-button">
+                                <mat-icon>schedule</mat-icon>
+                                {{ formatTimeValue(control.value) }}
+                              </button>
+                            } @else if (prop.inputType === 'number') {
+                              <input 
+                                type="number"
+                                [formControl]="control"
+                                [readonly]="prop.isKey"
+                                class="inline-input">
+                            } @else {
+                              <input 
+                                [type]="prop.inputType === 'email' ? 'email' : 'text'"
+                                [formControl]="control"
+                                [readonly]="prop.isKey"
+                                class="inline-input">
+                            }
+                          </div>
+                        }
+                      }
+                    } @else {
+                      <div class="cell-content" [class.key-cell]="prop.isKey">
+                        {{ formatValue(getRowValue(row, prop.name)) }}
+                      </div>
+                    }
+                  </td>
+                }
+                <td class="table-cell actions-cell">
+                  @if (isEditing(getRowId(row))) {
+                    <div class="action-buttons">
+                      <button 
+                        mat-icon-button 
+                        color="primary"
+                        (click)="saveRow(getRowId(row))"
+                        matTooltip="Save">
+                        <mat-icon>save</mat-icon>
+                      </button>
+                      <button 
+                        mat-icon-button 
+                        color="warn"
+                        (click)="cancelEdit(getRowId(row))"
+                        matTooltip="Cancel">
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="action-buttons">
+                      <button 
+                        mat-icon-button 
+                        color="primary"
+                        (click)="edit(row)"
+                        [disabled]="newRow() !== null || editingRowId() !== null"
+                        matTooltip="Edit">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button 
+                        mat-icon-button 
+                        color="warn"
+                        (click)="delete(row)"
+                        [disabled]="newRow() !== null || editingRowId() !== null"
+                        matTooltip="Delete">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
                   }
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let row">
-                <div class="cell-content" [class.key-cell]="prop.isKey">
-                  {{ formatValue(getRowValue(row, prop.name)) }}
-                </div>
-              </td>
-            </ng-container>
-          }
-
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let row">
-              <div class="action-buttons">
-                <button 
-                  mat-icon-button 
-                  color="primary"
-                  (click)="edit(row)"
-                  matTooltip="Edit">
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <button 
-                  mat-icon-button 
-                  color="warn"
-                  (click)="delete(row)"
-                  matTooltip="Delete">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+                </td>
+              </tr>
+            }
+            
+            <!-- Add New Row - Shows as plus button or editable row -->
+            <tr class="table-row add-row-row" [class.editing-row]="newRow() !== null">
+              @if (newRow() === null) {
+                <!-- Plus button state -->
+                @for (prop of validProperties(); track trackByPropertyName($index, prop)) {
+                  <td class="table-cell add-row-cell-content">
+                    @if ($index === 0) {
+                      <button 
+                        mat-icon-button 
+                        color="primary"
+                        (click)="createNew()"
+                        [disabled]="editingRowId() !== null"
+                        class="add-row-button-icon"
+                        matTooltip="Add New Row">
+                        <mat-icon>add</mat-icon>
+                      </button>
+                    }
+                  </td>
+                }
+                <td class="table-cell add-row-cell-content">
+                  <!-- Empty actions cell when showing plus button -->
+                </td>
+              } @else {
+                <!-- Editable row state -->
+                @if (getFormGroup(null); as newFormGroup) {
+                  @for (prop of validProperties(); track trackByPropertyName($index, prop)) {
+                    <td class="table-cell">
+                      @if (getFormControl(newFormGroup, prop.name); as control) {
+                        <div class="editable-cell">
+                          @if (prop.inputType === 'checkbox' || prop.inputType === 'boolean') {
+                            <mat-checkbox 
+                              [formControl]="control">
+                            </mat-checkbox>
+                          } @else if (prop.inputType === 'date') {
+                            <button 
+                              mat-stroked-button 
+                              type="button"
+                              (click)="openDatePicker(control, prop.name)"
+                              class="date-time-button">
+                              <mat-icon>calendar_today</mat-icon>
+                              {{ formatDateValue(control.value) }}
+                            </button>
+                          } @else if (prop.inputType === 'datetime-local') {
+                            <button 
+                              mat-stroked-button 
+                              type="button"
+                              (click)="openDateTimePicker(control, prop.name)"
+                              class="date-time-button">
+                              <mat-icon>event</mat-icon>
+                              {{ formatDateTimeValue(control.value) }}
+                            </button>
+                          } @else if (prop.inputType === 'time') {
+                            <button 
+                              mat-stroked-button 
+                              type="button"
+                              (click)="openTimePicker(control, prop.name)"
+                              class="date-time-button">
+                              <mat-icon>schedule</mat-icon>
+                              {{ formatTimeValue(control.value) }}
+                            </button>
+                          } @else if (prop.inputType === 'number') {
+                            <input 
+                              type="number"
+                              [formControl]="control"
+                              class="inline-input">
+                          } @else {
+                            <input 
+                              [type]="prop.inputType === 'email' ? 'email' : 'text'"
+                              [formControl]="control"
+                              class="inline-input">
+                          }
+                        </div>
+                      }
+                    </td>
+                  }
+                  <td class="table-cell actions-cell">
+                    <div class="action-buttons">
+                      <button 
+                        mat-icon-button 
+                        color="primary"
+                        (click)="saveRow(null)"
+                        [disabled]="newFormGroup.invalid"
+                        matTooltip="Save">
+                        <mat-icon>save</mat-icon>
+                      </button>
+                      <button 
+                        mat-icon-button 
+                        color="warn"
+                        (click)="cancelEdit(null)"
+                        matTooltip="Cancel">
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                } @else {
+                  <td [attr.colspan]="displayedColumns().length" class="table-cell">
+                    <div class="loading-cell">Loading form...</div>
+                  </td>
+                }
+              }
+            </tr>
+          </tbody>
         </table>
 
         <mat-paginator
@@ -106,4 +261,3 @@
     </mat-card-content>
   </mat-card>
 </div>
-

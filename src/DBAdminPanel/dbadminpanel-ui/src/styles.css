@@ -2,6 +2,40 @@
 @import '@angular/material/prebuilt-themes/indigo-pink.css';
 
 /* You can add global styles to this file, and also import other style files */
+
+/* Ensure Material tabs don't clip overlays */
+::ng-deep .mat-mdc-tab-group {
+  overflow: visible !important;
+}
+
+::ng-deep .mat-mdc-tab-body-wrapper {
+  overflow: visible !important;
+}
+
+::ng-deep .mat-mdc-tab-body-content {
+  overflow: visible !important;
+}
+
+/* Ensure form overlay is never clipped */
+.form-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 10000 !important;
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
+/* Ensure parent containers don't clip fixed overlays */
+.entity-table-container,
+.entity-view-container,
+.tab-content,
+.content-wrapper,
+.mat-mdc-tab-body-content {
+  overflow-x: visible !important;
+}
 * {
   box-sizing: border-box;
 }
@@ -16,10 +50,11 @@ body {
   font-family: 'Roboto', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%);
+  background: linear-gradient(135deg, var(--app-bg-primary) 0%, var(--app-bg-secondary) 50%, var(--app-bg-tertiary) 100%);
   background-attachment: fixed;
-  color: #e0e0e0;
+  color: var(--app-text-primary);
   overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Material Icons font fix */
@@ -39,25 +74,25 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Futuristic scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(26, 31, 58, 0.5);
+  background: var(--app-scrollbar-track);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #00d4ff 0%, #0099cc 100%);
+  background: var(--app-scrollbar-thumb);
   border-radius: 10px;
-  border: 2px solid rgba(26, 31, 58, 0.5);
+  border: 2px solid var(--app-scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #00e5ff 0%, #00aacc 100%);
+  background: var(--app-scrollbar-thumb-hover);
 }
 
 /* Material theme overrides for consistent futuristic look */
@@ -70,25 +105,26 @@ body {
 
 .mat-mdc-button:hover, .mat-mdc-raised-button:hover, .mat-mdc-icon-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 212, 255, 0.3) !important;
+  box-shadow: 0 8px 16px var(--app-accent-alpha-3) !important;
 }
 
 .mat-mdc-icon-button {
-  color: #00d4ff !important;
+  color: var(--app-accent) !important;
 }
 
 .mat-mdc-icon-button:hover {
-  background: rgba(0, 212, 255, 0.1) !important;
+  background: var(--app-accent-alpha-1) !important;
 }
 
 /* Card styling - consistent across all cards */
 .mat-mdc-card {
-  background: rgba(26, 31, 58, 0.8) !important;
+  background: var(--app-bg-card) !important;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 212, 255, 0.2) !important;
+  border: 1px solid var(--app-border) !important;
   border-radius: 16px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-  color: #e0e0e0 !important;
+  box-shadow: 0 8px 32px var(--app-shadow) !important;
+  color: var(--app-text-primary) !important;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .mat-mdc-card-header {
@@ -96,45 +132,46 @@ body {
 }
 
 .mat-mdc-card-title {
-  color: #e0e0e0 !important;
+  color: var(--app-text-primary) !important;
   font-weight: 600 !important;
 }
 
 .mat-mdc-card-subtitle {
-  color: rgba(224, 224, 224, 0.7) !important;
+  color: var(--app-text-tertiary) !important;
 }
 
 .mat-mdc-card-content {
-  color: rgba(224, 224, 224, 0.9) !important;
+  color: var(--app-text-secondary) !important;
   padding: 16px !important;
 }
 
 /* Table styling - consistent */
 .mat-mdc-table {
-  background: rgba(26, 31, 58, 0.6) !important;
+  background: var(--app-bg-table) !important;
   border-radius: 12px !important;
   overflow: hidden;
+  transition: background 0.3s ease;
 }
 
 .mat-mdc-header-cell {
-  background: rgba(0, 212, 255, 0.1) !important;
-  color: #00d4ff !important;
+  background: var(--app-accent-alpha-1) !important;
+  color: var(--app-accent) !important;
   font-weight: 600 !important;
-  border-bottom: 2px solid rgba(0, 212, 255, 0.3) !important;
+  border-bottom: 2px solid var(--app-accent-alpha-3) !important;
 }
 
 .mat-mdc-cell {
-  color: rgba(224, 224, 224, 0.9) !important;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1) !important;
+  color: var(--app-text-secondary) !important;
+  border-bottom: 1px solid var(--app-accent-alpha-1) !important;
 }
 
 .mat-mdc-row {
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1) !important;
+  border-bottom: 1px solid var(--app-accent-alpha-1) !important;
   transition: background 0.2s ease !important;
 }
 
 .mat-mdc-row:hover {
-  background: rgba(0, 212, 255, 0.05) !important;
+  background: var(--app-accent-alpha-1) !important;
 }
 
 /* Form field styling - consistent */
@@ -143,112 +180,124 @@ body {
 }
 
 .mat-mdc-text-field-wrapper {
-  background: rgba(26, 31, 58, 0.5) !important;
+  background: var(--app-bg-input) !important;
   border-radius: 8px !important;
+  transition: background 0.3s ease;
 }
 
 .mat-mdc-form-field-focus-overlay {
-  background: rgba(0, 212, 255, 0.1) !important;
+  background: var(--app-accent-alpha-1) !important;
 }
 
 .mat-mdc-input-element {
-  color: #e0e0e0 !important;
+  color: var(--app-text-primary) !important;
 }
 
 .mat-mdc-form-field-label {
-  color: rgba(224, 224, 224, 0.7) !important;
+  color: var(--app-text-tertiary) !important;
 }
 
 .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
-  color: #00d4ff !important;
+  color: var(--app-accent) !important;
 }
 
 .mat-mdc-form-field .mat-mdc-text-field-wrapper .mat-mdc-form-field-flex .mat-mdc-floating-label {
-  color: rgba(224, 224, 224, 0.7) !important;
+  color: var(--app-text-tertiary) !important;
 }
 
 .mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper .mat-mdc-form-field-flex .mat-mdc-floating-label {
-  color: #00d4ff !important;
+  color: var(--app-accent) !important;
 }
 
 .mdc-text-field--outlined .mdc-notched-outline__leading,
 .mdc-text-field--outlined .mdc-notched-outline__notch,
 .mdc-text-field--outlined .mdc-notched-outline__trailing {
-  border-color: rgba(0, 212, 255, 0.3) !important;
+  border-color: var(--app-accent-alpha-3) !important;
 }
 
 .mat-mdc-form-field.mat-focused .mdc-text-field--outlined .mdc-notched-outline__leading,
 .mat-mdc-form-field.mat-focused .mdc-text-field--outlined .mdc-notched-outline__notch,
 .mat-mdc-form-field.mat-focused .mdc-text-field--outlined .mdc-notched-outline__trailing {
-  border-color: #00d4ff !important;
+  border-color: var(--app-accent) !important;
 }
 
 /* Select/Dropdown styling */
 .mat-mdc-select-value {
-  color: #e0e0e0 !important;
+  color: var(--app-text-primary) !important;
 }
 
 .mat-mdc-select-arrow {
-  color: rgba(224, 224, 224, 0.7) !important;
+  color: var(--app-text-tertiary) !important;
 }
 
 .mat-mdc-select-panel {
-  background: rgba(26, 31, 58, 0.95) !important;
+  background: var(--app-bg-card-hover) !important;
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  border: 1px solid var(--app-accent-alpha-3) !important;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .mat-mdc-option {
-  color: #e0e0e0 !important;
+  color: var(--app-text-primary) !important;
 }
 
 .mat-mdc-option:hover:not(.mdc-list-item--disabled),
 .mat-mdc-option:focus:not(.mdc-list-item--disabled) {
-  background: rgba(0, 212, 255, 0.1) !important;
+  background: var(--app-accent-alpha-1) !important;
 }
 
 .mat-mdc-option.mdc-list-item--selected {
-  background: rgba(0, 212, 255, 0.2) !important;
-  color: #00d4ff !important;
+  background: var(--app-accent-alpha-2) !important;
+  color: var(--app-accent) !important;
 }
 
 /* Toolbar styling */
 .mat-toolbar {
-  background: rgba(26, 31, 58, 0.9) !important;
+  background: var(--app-bg-toolbar) !important;
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2) !important;
-  color: #e0e0e0 !important;
+  border-bottom: 1px solid var(--app-border) !important;
+  color: var(--app-text-primary) !important;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 /* Sidenav styling */
 .mat-drawer {
-  background: linear-gradient(180deg, rgba(26, 31, 58, 0.95) 0%, rgba(15, 20, 25, 0.95) 100%) !important;
+  background: var(--app-bg-sidenav) !important;
   backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(0, 212, 255, 0.2) !important;
+  border-right: 1px solid var(--app-border) !important;
+  transition: background 0.3s ease, border-color 0.3s ease;
+  top: 0 !important;
 }
 
 .mat-drawer-container {
   background: transparent !important;
 }
 
+/* Ensure sidenav starts from top without gap */
+mat-sidenav[fixedInViewport] {
+  top: 0 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
 /* List styling */
 .mat-mdc-list-item {
-  color: rgba(224, 224, 224, 0.9) !important;
+  color: var(--app-text-secondary) !important;
 }
 
 .mat-mdc-list-item:hover {
-  background: rgba(0, 212, 255, 0.1) !important;
+  background: var(--app-accent-alpha-1) !important;
 }
 
 /* Chip styling */
 .mat-mdc-chip {
-  background: rgba(0, 212, 255, 0.2) !important;
-  color: #00d4ff !important;
-  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  background: var(--app-accent-alpha-2) !important;
+  color: var(--app-accent) !important;
+  border: 1px solid var(--app-accent-alpha-3) !important;
 }
 
 .mat-mdc-chip mat-icon {
-  color: #00d4ff !important;
+  color: var(--app-accent) !important;
   font-size: 18px;
   width: 18px;
   height: 18px;
@@ -257,29 +306,87 @@ body {
 
 /* Divider styling */
 .mat-divider {
-  border-top-color: rgba(0, 212, 255, 0.2) !important;
+  border-top-color: var(--app-border) !important;
 }
 
 /* Paginator styling */
 .mat-mdc-paginator {
-  background: rgba(26, 31, 58, 0.6) !important;
-  color: rgba(224, 224, 224, 0.9) !important;
-  border-top: 1px solid rgba(0, 212, 255, 0.2) !important;
+  background: var(--app-bg-table) !important;
+  color: var(--app-text-secondary) !important;
+  border-top: 1px solid var(--app-border) !important;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .mat-mdc-paginator-page-size-label,
 .mat-mdc-paginator-range-label {
-  color: rgba(224, 224, 224, 0.7) !important;
+  color: var(--app-text-tertiary) !important;
 }
 
 /* Checkbox styling */
 .mat-mdc-checkbox .mdc-checkbox {
-  color: #00d4ff !important;
+  color: var(--app-accent) !important;
 }
 
 .mat-mdc-checkbox .mdc-checkbox__native-control:enabled:checked~.mdc-checkbox__background {
-  background-color: #00d4ff !important;
-  border-color: #00d4ff !important;
+  background-color: var(--app-accent) !important;
+  border-color: var(--app-accent) !important;
+}
+
+/* Tab styling */
+.mat-mdc-tab {
+  color: var(--app-text-primary) !important;
+}
+
+.mat-mdc-tab .mdc-tab__text-label {
+  color: var(--app-text-primary) !important;
+}
+
+.mat-mdc-tab .mdc-tab__content {
+  color: var(--app-text-primary) !important;
+}
+
+.mat-mdc-tab:not(.mdc-tab--active) {
+  color: var(--app-text-tertiary) !important;
+}
+
+.mat-mdc-tab:not(.mdc-tab--active) .mdc-tab__text-label {
+  color: var(--app-text-tertiary) !important;
+}
+
+.mat-mdc-tab:not(.mdc-tab--active) .mdc-tab__content {
+  color: var(--app-text-tertiary) !important;
+}
+
+.mat-mdc-tab.mdc-tab--active {
+  color: var(--app-accent) !important;
+}
+
+.mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+  color: var(--app-accent) !important;
+}
+
+.mat-mdc-tab.mdc-tab--active .mdc-tab__content {
+  color: var(--app-accent) !important;
+}
+
+.mat-mdc-tab-header {
+  border-bottom-color: var(--app-border) !important;
+}
+
+.mat-mdc-tab-group {
+  color: var(--app-text-primary) !important;
+}
+
+.mat-mdc-tab-label {
+  color: var(--app-text-primary) !important;
+}
+
+.mat-mdc-tab-label:not(.mdc-tab--active) {
+  color: var(--app-text-tertiary) !important;
+}
+
+.mat-mdc-tab-label.mdc-tab--active {
+  color: var(--app-accent) !important;
 }
 
 /* Icon colors - consistent */
@@ -327,16 +434,48 @@ mat-icon {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Primary button styling */
+/* Button text color - ensure buttons have proper text color */
+.mat-mdc-button:not(.mat-primary):not(.mat-warn):not(.mat-accent) {
+  color: var(--app-text-primary) !important;
+}
+
+.mat-mdc-button:not(.mat-primary):not(.mat-warn):not(.mat-accent) .mdc-button__label {
+  color: var(--app-text-primary) !important;
+}
+
+/* Primary button styling - always use white text on colored background */
 .mat-mdc-raised-button.mat-primary {
-  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%) !important;
-  color: #0a0e27 !important;
+  background: linear-gradient(135deg, var(--app-accent) 0%, var(--app-accent-secondary) 100%) !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
-  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3) !important;
+  box-shadow: 0 4px 12px var(--app-accent-alpha-3) !important;
+}
+
+.mat-mdc-raised-button.mat-primary .mdc-button__label {
+  color: #ffffff !important;
 }
 
 .mat-mdc-raised-button.mat-primary:hover {
-  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4) !important;
+  box-shadow: 0 6px 20px var(--app-accent-alpha-3) !important;
+}
+
+/* Outlined button styling */
+.mat-mdc-outlined-button:not(.mat-primary):not(.mat-warn):not(.mat-accent) {
+  color: var(--app-text-primary) !important;
+  border-color: var(--app-border) !important;
+}
+
+.mat-mdc-outlined-button:not(.mat-primary):not(.mat-warn):not(.mat-accent) .mdc-button__label {
+  color: var(--app-text-primary) !important;
+}
+
+/* Flat button styling */
+.mat-mdc-button:not(.mat-primary):not(.mat-warn):not(.mat-accent) {
+  color: var(--app-text-primary) !important;
+}
+
+.mat-mdc-button:not(.mat-primary):not(.mat-warn):not(.mat-accent) .mdc-button__label {
+  color: var(--app-text-primary) !important;
 }
 
 /* Warn button styling */
@@ -351,7 +490,7 @@ mat-icon {
 
 /* Glow effects */
 .glow-effect {
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), 0 0 40px rgba(0, 212, 255, 0.1) !important;
+  box-shadow: 0 0 20px var(--app-accent-alpha-3), 0 0 40px var(--app-accent-alpha-1) !important;
 }
 
 /* Animations */
@@ -385,25 +524,28 @@ mat-icon {
 
 /* Loading spinner */
 .mat-mdc-progress-spinner circle {
-  stroke: #00d4ff !important;
+  stroke: var(--app-accent) !important;
 }
 
 /* Ensure consistent text colors */
 h1, h2, h3, h4, h5, h6 {
-  color: #e0e0e0;
+  color: var(--app-text-primary);
+  transition: color 0.3s ease;
 }
 
 p {
-  color: rgba(224, 224, 224, 0.9);
+  color: var(--app-text-secondary);
+  transition: color 0.3s ease;
 }
 
 /* Link styling */
 a {
-  color: #00d4ff;
+  color: var(--app-accent);
   text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 a:hover {
-  color: #00e5ff;
+  color: var(--app-accent-hover);
   text-decoration: underline;
 }

@@ -1,6 +1,10 @@
 # DBAdminPanel
 
-A .NET source generator that automatically creates a complete MVC admin panel for Entity Framework Core models.
+<div align="center">
+  <img src="src/DBAdminPanel/dbadminpanel-ui/src/assets/icons/dotnet-package-icon.svg" alt="DBAdminPanel Logo" width="128" height="128">
+  
+  A .NET source generator that automatically creates a complete MVC admin panel for Entity Framework Core models.
+</div>
 
 ## Features
 
@@ -76,6 +80,7 @@ The source generator:
 - The source generator automatically detects entities from your `DbContext`
 - Key properties are automatically detected (properties named "Id" or "{EntityName}Id", or properties with `[Key]` attribute)
 - All generated code is placed in the `DBAdminPanel.Generated` namespace
+
 
 
 

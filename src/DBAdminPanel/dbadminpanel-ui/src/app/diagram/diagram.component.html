@@ -43,6 +43,25 @@
       </div>
 
       <mat-card class="diagram-card">
+        <mat-card-header>
+          <mat-card-title>Entity Relationship Diagram</mat-card-title>
+          <div class="spacer"></div>
+          <div class="diagram-controls">
+            <button mat-icon-button (click)="zoomOut()" matTooltip="Zoom Out">
+              <mat-icon>zoom_out</mat-icon>
+            </button>
+            <span class="zoom-level">{{ zoomLevelPercent() }}%</span>
+            <button mat-icon-button (click)="zoomIn()" matTooltip="Zoom In">
+              <mat-icon>zoom_in</mat-icon>
+            </button>
+            <button mat-icon-button (click)="resetZoom()" matTooltip="Reset Zoom">
+              <mat-icon>fit_screen</mat-icon>
+            </button>
+            <button mat-icon-button (click)="saveSvg()" matTooltip="Save as SVG" color="primary">
+              <mat-icon>download</mat-icon>
+            </button>
+          </div>
+        </mat-card-header>
         <mat-card-content>
           @if (diagramData().length > 0) {
             <div id="mermaid-diagram" class="mermaid-container"></div>

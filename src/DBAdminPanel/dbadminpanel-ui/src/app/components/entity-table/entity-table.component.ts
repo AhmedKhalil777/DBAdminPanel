@@ -1,8 +1,6 @@
-import { Component, input, signal, computed, effect, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
-import { MatTable } from '@angular/material/table';
+import { Component, input, signal, computed, effect, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
+import { FormsModule, ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -12,17 +10,24 @@ import { DeleteConfirmationModalComponent, DeleteConfirmationData } from '../del
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ApiService, EntityMetadata } from '../../services/api.service';
-import { EntityFormComponent } from '../entity-form/entity-form.component';
+import { TypeUtilsService } from '../../services/type-utils.service';
+import { DateTimePickerDialogComponent, DateTimePickerData } from '../entity-form/fields/datetime-picker-dialog/datetime-picker-dialog.component';
+import { DatePickerDialogComponent, DatePickerData } from '../entity-form/fields/date-picker-dialog/date-picker-dialog.component';
+import { TimePickerDialogComponent, TimePickerData } from '../entity-form/fields/time-picker-dialog/time-picker-dialog.component';
 
 @Component({
   selector: 'app-entity-table',
   standalone: true,
   imports: [
     CommonModule, 
-    FormsModule, 
-    EntityFormComponent,
-    MatTableModule,
+    FormsModule,
+    ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
@@ -30,14 +35,18 @@ import { EntityFormComponent } from '../entity-form/entity-form.component';
     MatDialogModule,
     MatTooltipModule,
     MatChipsModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatCheckboxModule
   ],
   templateUrl: './entity-table.component.html',
   styleUrl: './entity-table.component.css'
 })
 export class EntityTableComponent {
   entityMetadata = input.required<EntityMetadata>();
-  @ViewChild(MatTable) table!: MatTable<any>;
   
   // Signals for reactive state
   data = signal<any[]>([]);
@@ -46,21 +55,25 @@ export class EntityTableComponent {
   pageSize = signal(10);
   pageSizeOptions = [5, 10, 25, 50, 100];
   totalItems = signal(0);
-  showCreateForm = signal(false);
-  editingEntity = signal<any>(null);
   isLoading = signal(false);
   columnsReady = signal(false);
+  
+  // Inline editing state
+  editingRowId = signal<string | number | null>(null);
+  newRow = signal<any | null>(null);
+  editingForms = signal<Map<string | number, FormGroup>>(new Map());
   
   private previousEntityName: string | null = null;
 
   // Computed signals
   hasData = computed(() => this.data().length > 0);
   isEmpty = computed(() => !this.isLoading() && this.data().length === 0);
-  showTable = computed(() => !this.isLoading() && this.displayedColumns().length > 0 && this.columnsReady() && this.hasData());
+  showTable = computed(() => !this.isLoading() && this.displayedColumns().length > 0 && this.columnsReady());
 
   private apiService = inject(ApiService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
+  private typeUtils = inject(TypeUtilsService);
 
   constructor() {
     // Effect to handle entity metadata changes
@@ -78,8 +91,9 @@ export class EntityTableComponent {
           this.displayedColumns.set([]);
           this.currentPage.set(0);
           this.totalItems.set(0);
-          this.showCreateForm.set(false);
-          this.editingEntity.set(null);
+          this.editingRowId.set(null);
+          this.newRow.set(null);
+          this.editingForms.set(new Map());
           this.columnsReady.set(false);
           this.isLoading.set(true);
           
@@ -193,13 +207,343 @@ export class EntityTableComponent {
   }
 
   createNew() {
-    this.editingEntity.set(null);
-    this.showCreateForm.set(true);
+    const metadata = this.entityMetadata();
+    if (!metadata || !metadata.properties) {
+      console.error('No metadata available');
+      return;
+    }
+    
+    // Cancel any existing edit first
+    if (this.editingRowId() !== null) {
+      this.cancelEdit(this.editingRowId());
+    }
+    
+    const newRowData: any = {};
+    metadata.properties.forEach(prop => {
+      newRowData[prop.name] = this.getDefaultValue(prop);
+    });
+    
+    // Set newRow first, then create form
+    this.newRow.set(newRowData);
+    
+    // Create form synchronously
+    this.createFormForRow(null, newRowData);
+    
+    // Force change detection
+    this.cdr.markForCheck();
+    setTimeout(() => {
+      this.cdr.detectChanges();
+    }, 0);
   }
 
-  edit(entity: any) {
-    this.editingEntity.set({ ...entity });
-    this.showCreateForm.set(true);
+  edit(row: any) {
+    const metadata = this.entityMetadata();
+    const rowId = this.getRowId(row);
+    this.editingRowId.set(rowId);
+    
+    // Extract values using getRowValue to ensure consistent property access
+    const rowData: any = {};
+    metadata.properties.forEach(prop => {
+      rowData[prop.name] = this.getRowValue(row, prop.name);
+    });
+    
+    this.createFormForRow(rowId, rowData);
+  }
+
+  getRowId(row: any): string | number {
+    const metadata = this.entityMetadata();
+    const keyProp = metadata.properties.find(p => p.isKey);
+    if (keyProp) {
+      return this.getRowValue(row, keyProp.name) ?? `temp-${Date.now()}`;
+    }
+    return `temp-${Date.now()}`;
+  }
+
+  createFormForRow(rowId: string | number | null, rowData: any) {
+    const metadata = this.entityMetadata();
+    const formControls: { [key: string]: FormControl } = {};
+    
+    metadata.properties.forEach(prop => {
+      // Get value from rowData, handling null/undefined
+      let value = rowData[prop.name];
+      if (value === null || value === undefined) {
+        value = this.getDefaultValue(prop);
+      }
+      
+      // Handle date inputs - convert string to Date object
+      if (prop.inputType === 'date' && value) {
+        if (typeof value === 'string') {
+          const dateValue = new Date(value);
+          value = !isNaN(dateValue.getTime()) ? dateValue : null;
+        } else if (value instanceof Date) {
+          // Already a Date object
+          value = value;
+        }
+      }
+      
+      // Handle datetime-local inputs
+      if (prop.inputType === 'datetime-local' && value) {
+        if (typeof value === 'string') {
+          const dateValue = new Date(value);
+          value = !isNaN(dateValue.getTime()) ? dateValue : null;
+        }
+      }
+      
+      // Handle boolean/checkbox inputs
+      if (prop.inputType === 'checkbox' || prop.inputType === 'boolean') {
+        value = value === true || value === 'true' || value === 1;
+      }
+      
+      // Handle number inputs
+      if (prop.inputType === 'number' && value !== null && value !== undefined) {
+        const numValue = Number(value);
+        value = isNaN(numValue) ? 0 : numValue;
+      }
+      
+      const validators = prop.isKey && rowId === null ? [] : 
+                       prop.inputType === 'email' ? [Validators.email] : [];
+      
+      // Create proper FormControl instance
+      formControls[prop.name] = new FormControl(value, validators);
+    });
+    
+    const formGroup = new FormGroup(formControls);
+    const forms = new Map(this.editingForms());
+    if (rowId === null) {
+      forms.set('new', formGroup);
+      console.log('Form created for new row, form valid:', formGroup.valid);
+    } else {
+      forms.set(rowId, formGroup);
+    }
+    this.editingForms.set(forms);
+    
+    // Force change detection after a tick
+    setTimeout(() => {
+      this.cdr.detectChanges();
+      console.log('Change detection triggered, newRow:', this.newRow(), 'forms:', Array.from(this.editingForms().keys()));
+    }, 0);
+  }
+
+  getDefaultValue(prop: any): any {
+    if (prop.inputType === 'checkbox' || prop.inputType === 'boolean') {
+      return false;
+    }
+    if (prop.inputType === 'number') {
+      return 0;
+    }
+    if (prop.inputType === 'date' || prop.inputType === 'datetime-local') {
+      return null;
+    }
+    return '';
+  }
+
+  saveRow(rowId: string | number | null) {
+    const forms = this.editingForms();
+    const formGroup = rowId === null ? forms.get('new') : forms.get(rowId);
+    
+    if (!formGroup || formGroup.invalid) {
+      return;
+    }
+    
+    const metadata = this.entityMetadata();
+    const formValue = formGroup.value;
+    
+    // Convert date objects to ISO strings
+    metadata.properties.forEach(prop => {
+      if (prop.inputType === 'date' && formValue[prop.name] instanceof Date) {
+        formValue[prop.name] = formValue[prop.name].toISOString().split('T')[0];
+      }
+      if (prop.inputType === 'datetime-local' && formValue[prop.name] instanceof Date) {
+        formValue[prop.name] = formValue[prop.name].toISOString();
+      }
+    });
+    
+    if (rowId === null) {
+      // Create new
+      this.apiService.createEntity(metadata.name, formValue).subscribe({
+        next: () => {
+          this.cancelEdit(null);
+          this.loadData();
+        },
+        error: (error) => {
+          console.error('Failed to create:', error);
+          alert('Failed to create entity: ' + (error.error?.message || error.message));
+        }
+      });
+    } else {
+      // Update existing
+      this.apiService.updateEntity(metadata.name, String(rowId), formValue).subscribe({
+        next: () => {
+          this.cancelEdit(rowId);
+          this.loadData();
+        },
+        error: (error) => {
+          console.error('Failed to update:', error);
+          alert('Failed to update entity: ' + (error.error?.message || error.message));
+        }
+      });
+    }
+  }
+
+  cancelEdit(rowId: string | number | null) {
+    if (rowId === null) {
+      this.newRow.set(null);
+    } else {
+      this.editingRowId.set(null);
+    }
+    const forms = new Map(this.editingForms());
+    forms.delete(rowId === null ? 'new' : rowId);
+    this.editingForms.set(forms);
+  }
+
+  isEditing(rowId: string | number | null): boolean {
+    if (rowId === null) {
+      return this.newRow() !== null;
+    }
+    return this.editingRowId() === rowId;
+  }
+
+  getFormGroup(rowId: string | number | null): FormGroup | null {
+    const forms = this.editingForms();
+    return rowId === null ? forms.get('new') ?? null : forms.get(rowId) ?? null;
+  }
+
+  getFormControl(formGroup: FormGroup, propName: string): FormControl | null {
+    const control = formGroup.get(propName);
+    return control instanceof FormControl ? control : null;
+  }
+
+  getColumnWidth(propName: string): number | null {
+    // Return null to let table auto-size, or calculate based on column count
+    return null;
+  }
+
+  openDatePicker(control: FormControl, propertyName: string) {
+    const currentValue = control.value;
+    let dateValue: Date | null = null;
+    
+    if (currentValue) {
+      if (currentValue instanceof Date) {
+        dateValue = currentValue;
+      } else if (typeof currentValue === 'string') {
+        dateValue = new Date(currentValue);
+        if (isNaN(dateValue.getTime())) {
+          dateValue = null;
+        }
+      }
+    }
+
+    const dialogRef = this.dialog.open(DatePickerDialogComponent, {
+      width: '400px',
+      data: {
+        date: dateValue,
+        propertyName: propertyName
+      } as DatePickerData
+    });
+
+    dialogRef.afterClosed().subscribe((result: Date | null) => {
+      if (result !== null) {
+        control.setValue(result);
+        control.markAsTouched();
+      }
+    });
+  }
+
+  openDateTimePicker(control: FormControl, propertyName: string) {
+    const currentValue = control.value;
+    let dateValue: Date | null = null;
+    let hours = 0;
+    let minutes = 0;
+    
+    if (currentValue) {
+      if (currentValue instanceof Date) {
+        dateValue = currentValue;
+        hours = dateValue.getHours();
+        minutes = dateValue.getMinutes();
+      } else if (typeof currentValue === 'string') {
+        dateValue = new Date(currentValue);
+        if (!isNaN(dateValue.getTime())) {
+          hours = dateValue.getHours();
+          minutes = dateValue.getMinutes();
+        } else {
+          dateValue = null;
+        }
+      }
+    }
+
+    const dialogRef = this.dialog.open(DateTimePickerDialogComponent, {
+      width: '450px',
+      data: {
+        date: dateValue,
+        hours: hours,
+        minutes: minutes,
+        propertyName: propertyName
+      } as DateTimePickerData
+    });
+
+    dialogRef.afterClosed().subscribe((result: Date | null) => {
+      if (result !== null) {
+        control.setValue(result);
+        control.markAsTouched();
+      }
+    });
+  }
+
+  openTimePicker(control: FormControl, propertyName: string) {
+    const currentValue = control.value || '';
+    const currentTime = currentValue ? currentValue.split(':') : ['00', '00'];
+    
+    const dialogRef = this.dialog.open(TimePickerDialogComponent, {
+      width: '300px',
+      data: {
+        hours: parseInt(currentTime[0]) || 0,
+        minutes: parseInt(currentTime[1]) || 0
+      } as TimePickerData
+    });
+
+    dialogRef.afterClosed().subscribe((result: { hours: number; minutes: number } | null) => {
+      if (result) {
+        const timeString = `${String(result.hours).padStart(2, '0')}:${String(result.minutes).padStart(2, '0')}`;
+        control.setValue(timeString);
+        control.markAsTouched();
+      }
+    });
+  }
+
+  formatDateValue(value: any): string {
+    if (!value) return 'Select date';
+    if (value instanceof Date) {
+      return value.toLocaleDateString();
+    }
+    if (typeof value === 'string') {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString();
+      }
+    }
+    return 'Select date';
+  }
+
+  formatDateTimeValue(value: any): string {
+    if (!value) return 'Select date & time';
+    if (value instanceof Date) {
+      return value.toLocaleString();
+    }
+    if (typeof value === 'string') {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleString();
+      }
+    }
+    return 'Select date & time';
+  }
+
+  formatTimeValue(value: any): string {
+    if (!value) return 'Select time';
+    if (typeof value === 'string') {
+      return value;
+    }
+    return 'Select time';
   }
 
   delete(entity: any) {
@@ -271,16 +615,6 @@ export class EntityTableComponent {
     return `Entity #${keyValue || 'Unknown'}`;
   }
 
-  onSave() {
-    this.showCreateForm.set(false);
-    this.editingEntity.set(null);
-    this.loadData();
-  }
-
-  onCancel() {
-    this.showCreateForm.set(false);
-    this.editingEntity.set(null);
-  }
 
   getRowValue(row: any, propertyName: string): any {
     if (!row || !propertyName) return null;
@@ -332,7 +666,9 @@ export class EntityTableComponent {
   getPropertyType(propName: string): string {
     const metadata = this.entityMetadata();
     const prop = metadata.properties.find(p => p.name === propName);
-    return prop?.type || 'string';
+    const rawType = prop?.type || 'string';
+    // Normalize the type string to remove backticks and format nicely
+    return this.typeUtils.getDisplayType(rawType);
   }
 
   getPropertyIcon(type: string): string {

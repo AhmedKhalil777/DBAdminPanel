@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AppThemeService } from './services/app-theme.service';
 
 @Component({
   selector: 'app-root',
@@ -10,4 +11,11 @@ import { RouterOutlet } from '@angular/router';
 })
 export class AppComponent {
   title = 'DB Admin Panel';
+  
+  // Initialize theme service to apply theme on app startup
+  private themeService = inject(AppThemeService);
+  
+  constructor() {
+    // Theme is automatically applied via the service's effect
+  }
 }

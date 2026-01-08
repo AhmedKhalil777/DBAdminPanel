@@ -1,0 +1,40 @@
+<div class="date-picker-dialog">
+  <mat-card>
+    <mat-card-header>
+      <div mat-card-avatar class="dialog-avatar">
+        <mat-icon>calendar_today</mat-icon>
+      </div>
+      <mat-card-title>Select Date</mat-card-title>
+      <mat-card-subtitle>{{ data.propertyName }}</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="picker-content">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Date</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="datePicker"
+            [(ngModel)]="selectedDate"
+            [placeholder]="'Select date'"
+            readonly>
+          <mat-datepicker-toggle matIconSuffix [for]="datePicker"></mat-datepicker-toggle>
+          <mat-datepicker #datePicker></mat-datepicker>
+          <mat-icon matPrefix>calendar_today</mat-icon>
+        </mat-form-field>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+      <button mat-stroked-button (click)="onCancel()">
+        <mat-icon>cancel</mat-icon>
+        Cancel
+      </button>
+      <button mat-raised-button color="primary" (click)="onConfirm()">
+        <mat-icon>check</mat-icon>
+        Confirm
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>
+

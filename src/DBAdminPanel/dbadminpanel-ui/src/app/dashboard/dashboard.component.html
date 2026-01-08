@@ -6,12 +6,12 @@
       [disableClose]="true"
       class="sidenav"
       [fixedInViewport]="true"
-      [fixedTopGap]="64">
+      [fixedTopGap]="0">
       
       <div class="sidenav-content">
         <div class="sidenav-header">
           <h2 class="app-title">
-            <mat-icon class="title-icon">database</mat-icon>
+            <img src="assets/icons/dashboard-icon.svg" alt="Dashboard" class="title-icon" />
             DB Admin Panel
           </h2>
         </div>
@@ -91,6 +91,12 @@
           {{ selectedEntity()?.name || 'Dashboard' }}
         </span>
         <span class="spacer"></span>
+        <button 
+          mat-icon-button 
+          (click)="themeService.toggleTheme()" 
+          [matTooltip]="themeService.currentTheme() === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+          <mat-icon>{{ themeService.currentTheme() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        </button>
         <a mat-icon-button routerLink="/diagram" matTooltip="View Database Diagram">
           <mat-icon>schema</mat-icon>
         </a>

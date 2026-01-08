@@ -13,8 +13,9 @@
 }
 
 .loading-container p {
-  color: rgba(224, 224, 224, 0.9);
+  color: var(--app-text-secondary);
   font-size: 14px;
+  transition: color 0.3s ease;
 }
 
 .error-container {
@@ -36,13 +37,15 @@
 }
 
 .error-container h3 {
-  color: rgba(224, 224, 224, 0.9);
+  color: var(--app-text-secondary);
   margin: 16px 0 8px;
+  transition: color 0.3s ease;
 }
 
 .error-container p {
-  color: rgba(224, 224, 224, 0.7);
+  color: var(--app-text-tertiary);
   margin-bottom: 24px;
+  transition: color 0.3s ease;
 }
 
 @keyframes fadeIn {
@@ -55,4 +58,5 @@
     transform: translateY(0);
   }
 }
+
 

@@ -7,8 +7,9 @@
 
 .checkbox-label {
   font-size: 14px;
-  color: rgba(224, 224, 224, 0.9);
+  color: var(--app-text-secondary);
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .checkbox-field mat-checkbox {
@@ -20,7 +21,7 @@
 }
 
 .checkbox-field ::ng-deep .mdc-checkbox {
-  --mdc-checkbox-selected-checkmark-color: #0a0e27;
+  --mdc-checkbox-selected-checkmark-color: #ffffff;
   --mdc-checkbox-selected-focus-icon-color: #00d4ff;
   --mdc-checkbox-selected-hover-icon-color: #00d4ff;
   --mdc-checkbox-selected-icon-color: #00d4ff;
@@ -31,4 +32,5 @@
   color: #00d4ff;
   font-size: 12px;
 }
+
 

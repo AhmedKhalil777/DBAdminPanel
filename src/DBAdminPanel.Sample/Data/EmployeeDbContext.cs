@@ -9,8 +9,21 @@ public class EmployeeDbContext : DbContext
     {
     }
 
-    public DbSet<Employee> Employees { get; set; }
+    public DbSet<SimpleEmployee> Employees { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema("employees");
+
+        modelBuilder.Entity<SimpleEmployee>(entity =>
+        {
+            entity.HasKey(e => e.EmployeeId);
+            entity.Property(e => e.Salary).HasPrecision(18, 2);
+        });
+    }
 }
+
 
 
 

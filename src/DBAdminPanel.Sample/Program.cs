@@ -44,6 +44,13 @@ public class Program
         
         builder.AddNpgsqlDbContext<NotificationDbContext>("postgres", configureDbContextOptions: options =>
             options.UseNpgsql(connectionString.Replace("Database=dbadminpanel", "Database=notifications_db")));
+        
+        // Register complex DbContexts with relationships
+        builder.AddNpgsqlDbContext<ECommerceDbContext>("postgres", configureDbContextOptions: options =>
+            options.UseNpgsql(connectionString.Replace("Database=dbadminpanel", "Database=ecommerce_db")));
+        
+        builder.AddNpgsqlDbContext<OrganizationDbContext>("postgres", configureDbContextOptions: options =>
+            options.UseNpgsql(connectionString.Replace("Database=dbadminpanel", "Database=organization_db")));
 
         // Add DBAdminPanel - this will scan all DbContexts and generate admin panels
         builder.Services.AddDBAdminPanel();
@@ -102,43 +109,174 @@ public class Program
                 
                 // Apply migrations for each DbContext
                 var userContext = services.GetRequiredService<UserDbContext>();
-                userContext.Database.Migrate();
-                logger.LogInformation("UserDbContext migrations applied.");
+                try
+                {
+                    // Check if database can be connected
+                    if (!userContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to UserDbContext database. Creating database...");
+                        userContext.Database.EnsureCreated();
+                    }
+                    userContext.Database.Migrate();
+                    logger.LogInformation("UserDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying UserDbContext migrations: {Message}", ex.Message);
+                    // Continue with other contexts even if one fails
+                }
                 
                 var productContext = services.GetRequiredService<ProductDbContext>();
-                productContext.Database.Migrate();
-                logger.LogInformation("ProductDbContext migrations applied.");
+                try
+                {
+                    if (!productContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to ProductDbContext database. Creating database...");
+                        productContext.Database.EnsureCreated();
+                    }
+                    productContext.Database.Migrate();
+                    logger.LogInformation("ProductDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying ProductDbContext migrations: {Message}", ex.Message);
+                }
                 
                 var orderContext = services.GetRequiredService<OrderDbContext>();
-                orderContext.Database.Migrate();
-                logger.LogInformation("OrderDbContext migrations applied.");
+                try
+                {
+                    if (!orderContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to OrderDbContext database. Creating database...");
+                        orderContext.Database.EnsureCreated();
+                    }
+                    orderContext.Database.Migrate();
+                    logger.LogInformation("OrderDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying OrderDbContext migrations: {Message}", ex.Message);
+                }
                 
                 var blogContext = services.GetRequiredService<BlogDbContext>();
-                blogContext.Database.Migrate();
-                logger.LogInformation("BlogDbContext migrations applied.");
+                try
+                {
+                    if (!blogContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to BlogDbContext database. Creating database...");
+                        blogContext.Database.EnsureCreated();
+                    }
+                    blogContext.Database.Migrate();
+                    logger.LogInformation("BlogDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying BlogDbContext migrations: {Message}", ex.Message);
+                }
                 
                 var categoryContext = services.GetRequiredService<CategoryDbContext>();
-                categoryContext.Database.Migrate();
-                logger.LogInformation("CategoryDbContext migrations applied.");
+                try
+                {
+                    if (!categoryContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to CategoryDbContext database. Creating database...");
+                        categoryContext.Database.EnsureCreated();
+                    }
+                    categoryContext.Database.Migrate();
+                    logger.LogInformation("CategoryDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying CategoryDbContext migrations: {Message}", ex.Message);
+                }
                 
                 var employeeContext = services.GetRequiredService<EmployeeDbContext>();
-                employeeContext.Database.Migrate();
-                logger.LogInformation("EmployeeDbContext migrations applied.");
+                try
+                {
+                    if (!employeeContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to EmployeeDbContext database. Creating database...");
+                        employeeContext.Database.EnsureCreated();
+                    }
+                    employeeContext.Database.Migrate();
+                    logger.LogInformation("EmployeeDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying EmployeeDbContext migrations: {Message}", ex.Message);
+                }
                 
                 var invoiceContext = services.GetRequiredService<InvoiceDbContext>();
-                invoiceContext.Database.Migrate();
-                logger.LogInformation("InvoiceDbContext migrations applied.");
+                try
+                {
+                    if (!invoiceContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to InvoiceDbContext database. Creating database...");
+                        invoiceContext.Database.EnsureCreated();
+                    }
+                    invoiceContext.Database.Migrate();
+                    logger.LogInformation("InvoiceDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying InvoiceDbContext migrations: {Message}", ex.Message);
+                }
                 
                 var notificationContext = services.GetRequiredService<NotificationDbContext>();
-                notificationContext.Database.Migrate();
-                logger.LogInformation("NotificationDbContext migrations applied.");
+                try
+                {
+                    if (!notificationContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to NotificationDbContext database. Creating database...");
+                        notificationContext.Database.EnsureCreated();
+                    }
+                    notificationContext.Database.Migrate();
+                    logger.LogInformation("NotificationDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying NotificationDbContext migrations: {Message}", ex.Message);
+                }
                 
-                logger.LogInformation("All migrations applied successfully.");
+                var ecommerceContext = services.GetRequiredService<ECommerceDbContext>();
+                try
+                {
+                    if (!ecommerceContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to ECommerceDbContext database. Creating database...");
+                        ecommerceContext.Database.EnsureCreated();
+                    }
+                    ecommerceContext.Database.Migrate();
+                    logger.LogInformation("ECommerceDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying ECommerceDbContext migrations: {Message}", ex.Message);
+                }
+                
+                var organizationContext = services.GetRequiredService<OrganizationDbContext>();
+                try
+                {
+                    if (!organizationContext.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot connect to OrganizationDbContext database. Creating database...");
+                        organizationContext.Database.EnsureCreated();
+                    }
+                    organizationContext.Database.Migrate();
+                    logger.LogInformation("OrganizationDbContext migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error applying OrganizationDbContext migrations: {Message}", ex.Message);
+                }
+                
+                logger.LogInformation("Migration process completed. Check logs above for any errors.");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "An error occurred applying migrations.");
-                throw;
+                logger.LogError(ex, "An error occurred during migration process: {Message}", ex.Message);
+                // Don't throw - allow application to start even if some migrations fail
+                // This allows the app to run and you can fix database issues separately
             }
         }
 

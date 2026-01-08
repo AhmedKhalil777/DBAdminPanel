@@ -46,7 +46,7 @@ namespace DBAdminPanel.SourceGenerator
                                     DbContextName = dbContext.Name,
                                     DbContextFullName = dbContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                                     KeyProperty = keyProperty?.Name ?? "Id",
-                                    KeyPropertyType = keyProperty?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? "int",
+                                    KeyPropertyType = keyProperty != null ? NormalizeTypeString(keyProperty.Type) : "int",
                                     Properties = GetEntityProperties(entityType, keyProperty)
                                 });
                             }
@@ -88,13 +88,37 @@ namespace DBAdminPanel.SourceGenerator
                 properties.Add(new PropertyInfo
                 {
                     Name = prop.Name,
-                    Type = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    Type = NormalizeTypeString(prop.Type),
                     IsKey = prop.Name == keyPropertyName
                 });
             }
 
             return properties;
         }
+
+        private static string NormalizeTypeString(ITypeSymbol typeSymbol)
+        {
+            // Handle nullable value types (e.g., int?, DateTime?)
+            // Check if it's System.Nullable<T> by checking the original definition
+            if (typeSymbol is INamedTypeSymbol namedType && 
+                namedType.IsGenericType &&
+                namedType.TypeArguments.Length == 1)
+            {
+                var originalDef = namedType.OriginalDefinition;
+                // Check if it's Nullable<T> by name and namespace
+                if (originalDef.Name == "Nullable" && 
+                    originalDef.ContainingNamespace?.ToDisplayString() == "System")
+                {
+                    var underlyingType = namedType.TypeArguments[0];
+                    return $"{underlyingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}?";
+                }
+            }
+
+            // Handle nullable reference types (already have ? in the display string)
+            // Just return the normalized display string
+            return typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        }
     }
 }
+
 

@@ -8,10 +8,11 @@
 .time-picker-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(26, 31, 58, 0.95) !important;
+  background: var(--app-bg-card-hover) !important;
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 212, 255, 0.3) !important;
-  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3) !important;
+  border: 1px solid var(--app-accent-alpha-3) !important;
+  box-shadow: 0 8px 32px var(--app-accent-alpha-3) !important;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .time-picker-avatar {
@@ -22,7 +23,7 @@
 }
 
 .time-picker-avatar mat-icon {
-  color: #0a0e27 !important;
+  color: #ffffff !important;
   font-size: 24px;
   width: 24px;
   height: 24px;
@@ -55,9 +56,10 @@
   gap: 8px;
   padding: 16px;
   margin-top: 16px;
-  background: rgba(0, 212, 255, 0.1);
+  background: var(--app-accent-alpha-1);
   border-radius: 8px;
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  border: 1px solid var(--app-accent-alpha-3);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .selected-time mat-icon {
@@ -82,18 +84,19 @@
 }
 
 .cancel-button {
-  color: rgba(224, 224, 224, 0.7);
-  border-color: rgba(0, 212, 255, 0.3);
+  color: var(--app-text-tertiary);
+  border-color: var(--app-accent-alpha-3);
+  transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
 }
 
 .cancel-button:hover {
-  border-color: rgba(0, 212, 255, 0.6);
-  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--app-accent);
+  background: var(--app-accent-alpha-1);
 }
 
 .confirm-button {
   background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%) !important;
-  color: #0a0e27 !important;
+  color: #ffffff !important;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3) !important;
   transition: all 0.3s ease !important;
@@ -103,4 +106,5 @@
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4) !important;
 }
+
 

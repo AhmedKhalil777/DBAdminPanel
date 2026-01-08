@@ -9,8 +9,21 @@ public class OrderDbContext : DbContext
     {
     }
 
-    public DbSet<Order> Orders { get; set; }
+    public DbSet<SimpleOrder> Orders { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema("orders");
+
+        modelBuilder.Entity<SimpleOrder>(entity =>
+        {
+            entity.HasKey(e => e.OrderId);
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+        });
+    }
 }
+
 
 
 

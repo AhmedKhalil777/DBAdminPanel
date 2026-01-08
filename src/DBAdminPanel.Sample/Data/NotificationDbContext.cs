@@ -10,7 +10,10 @@ public class NotificationDbContext : DbContext
     }
 
     public DbSet<Notification> Notifications { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema("notifications");
+    }
 }
-
-
-
