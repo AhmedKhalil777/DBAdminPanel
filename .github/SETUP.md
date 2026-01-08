@@ -12,6 +12,25 @@ This guide explains how to set up GitHub Actions for building and publishing DBA
 
 ### 1. Get Your NuGet API Key
 
+**Important**: You must have the packages already created on NuGet.org OR use a global scope API key.
+
+#### Option A: Global Scope (Recommended for First-Time Publishing)
+
+1. Go to [NuGet.org](https://www.nuget.org/)
+2. Sign in to your account
+3. Click on your username → **API Keys**
+4. Click **Create** to generate a new API key
+5. Set:
+   - **Key Name**: `DBAdminPanel GitHub Actions`
+   - **Expiration**: Choose appropriate expiration (or leave blank for no expiration)
+   - **Select Scopes**: 
+     - ✅ **Select scope**: Choose **Push new packages and package versions** (Global scope)
+     - This allows pushing any package under your account
+6. Click **Create**
+7. **Copy the API key** (you won't be able to see it again!)
+
+#### Option B: Package-Specific Scope (After Packages Exist)
+
 1. Go to [NuGet.org](https://www.nuget.org/)
 2. Sign in to your account
 3. Click on your username → **API Keys**
@@ -24,6 +43,8 @@ This guide explains how to set up GitHub Actions for building and publishing DBA
      - Or select **Glob pattern**: `DBAdminPanel*`
 6. Click **Create**
 7. **Copy the API key** (you won't be able to see it again!)
+
+**Note**: For first-time publishing, you MUST use Option A (Global scope). Package-specific scopes only work for packages that already exist on NuGet.org.
 
 ### 2. Add Secret to GitHub
 
@@ -146,7 +167,36 @@ The workflow now has a fallback that uses `npm install` if `npm ci` fails, but i
 
 ### Issue: Workflow fails with "NuGet API key not found"
 
-**Solution**: Ensure `NUGET_API_KEY` secret is set in repository settings.
+**Solution**: 
+- Ensure `NUGET_API_KEY` secret is set in repository settings
+- Go to **Settings** → **Secrets and variables** → **Actions**
+- Verify the secret name is exactly `NUGET_API_KEY` (case-sensitive)
+
+### Issue: 403 Forbidden - API key invalid or expired
+
+**Solution**:
+1. **Verify API key is correct**:
+   - Go to [NuGet.org API Keys](https://www.nuget.org/account/apikeys)
+   - Check if the key exists and is not expired
+   - If expired, create a new key and update the GitHub secret
+
+2. **Check API key scope**:
+   - For **first-time publishing**: Use **Global scope** (Push new packages and package versions)
+   - For **existing packages**: Can use package-specific scope
+   - Package-specific scopes only work if the package already exists on NuGet.org
+
+3. **Verify package ownership**:
+   - Ensure you own the packages `DBAdminPanel` and `DBAdminPanel.SourceGenerator` on NuGet.org
+   - If packages don't exist, you must use a Global scope API key to create them
+
+4. **Check package ID matches**:
+   - Verify the package ID in `.csproj` matches what the API key has permission for
+   - Package IDs are case-sensitive
+
+5. **Recreate API key**:
+   - Delete the old API key on NuGet.org
+   - Create a new one with Global scope
+   - Update the `NUGET_API_KEY` secret in GitHub
 
 ### Issue: Package already exists on NuGet
 

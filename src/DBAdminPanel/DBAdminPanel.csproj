@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>DBAdminPanel</PackageId>
-    <PackageVersion>1.0.0</PackageVersion>
+    <PackageVersion>0.0.1-alpha</PackageVersion>
     <Authors>DBAdminPanel</Authors>
     <Description>ASP.NET Core package for automatic MVC admin panel generation from EF Core models. Scans your DbContext and provides complete CRUD operations for all entities, accessible via /DBAdminPanel route.</Description>
     <PackageTags>efcore;mvc;admin;dashboard;crud;scaffolding</PackageTags>
@@ -17,6 +17,17 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
   </ItemGroup>
   
@@ -26,6 +37,7 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="logo.svg" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <Target Name="BuildAngular" BeforeTargets="Build">

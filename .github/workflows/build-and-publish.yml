@@ -21,7 +21,6 @@ on:
         type: string
 
 env:
-  DOTNET_VERSION: '10.0.x'
   NODE_VERSION: '20.x'
   NUGET_SOURCE: 'https://api.nuget.org/v3/index.json'
 
@@ -39,7 +38,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -103,7 +105,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -161,20 +166,40 @@ jobs:
           dotnet pack src/DBAdminPanel.SourceGenerator/DBAdminPanel.SourceGenerator.csproj --configuration Release --output ./artifacts
           dotnet pack src/DBAdminPanel/DBAdminPanel.csproj --configuration Release --no-build --output ./artifacts
 
+      - name: Verify API key is set
+        run: |
+          if [ -z "${{ secrets.NUGET_API_KEY }}" ]; then
+            echo "::error::NUGET_API_KEY secret is not set. Please add it in repository Settings → Secrets and variables → Actions"
+            exit 1
+          else
+            echo "API key is set (length: ${#NUGET_API_KEY} characters)"
+          fi
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+      - name: List packages to publish
+        run: |
+          echo "Packages to publish:"
+          ls -lh ./artifacts/*.nupkg || echo "No packages found in artifacts folder"
+
       - name: Publish DBAdminPanel.SourceGenerator to NuGet
         run: |
+          echo "Publishing DBAdminPanel.SourceGenerator package..."
           dotnet nuget push ./artifacts/DBAdminPanel.SourceGenerator.*.nupkg \
             --api-key ${{ secrets.NUGET_API_KEY }} \
             --source ${{ env.NUGET_SOURCE }} \
-            --skip-duplicate
+            --skip-duplicate \
+            --no-symbols
         continue-on-error: false
 
       - name: Publish DBAdminPanel to NuGet
         run: |
+          echo "Publishing DBAdminPanel package..."
           dotnet nuget push ./artifacts/DBAdminPanel.*.nupkg \
             --api-key ${{ secrets.NUGET_API_KEY }} \
             --source ${{ env.NUGET_SOURCE }} \
-            --skip-duplicate
+            --skip-duplicate \
+            --no-symbols
         continue-on-error: false
 
       - name: Create GitHub Release Notes

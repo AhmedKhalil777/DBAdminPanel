@@ -7,7 +7,7 @@
   
   [![NuGet](https://img.shields.io/nuget/v/DBAdminPanel.svg)](https://www.nuget.org/packages/DBAdminPanel)
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-  [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
+  [![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-purple.svg)](https://dotnet.microsoft.com/)
 </div>
 
 ## 🚀 Features
@@ -198,8 +198,8 @@ The source generator automatically detects primary keys using:
 
 ## 📋 Requirements
 
-- **.NET 10.0** or later
-- **Entity Framework Core 10.0** or later
+- **.NET 8.0**, **.NET 9.0**, or **.NET 10.0**
+- **Entity Framework Core 8.0+** (matching your .NET version)
 - **ASP.NET Core MVC** (included in .NET)
 - **Node.js 20.x** (only required for building the package, not for using it)
 
