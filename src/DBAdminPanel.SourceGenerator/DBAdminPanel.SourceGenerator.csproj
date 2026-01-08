@@ -13,7 +13,7 @@
     <Description>Source generator for DBAdminPanel that generates controllers and metadata classes.</Description>
     <PackageTags>efcore;source-generator;mvc;admin</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/yourusername/DBAdminPanel</RepositoryUrl>
+    <RepositoryUrl>https://github.com/ahmedkhalil777/DBAdminPanel</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
