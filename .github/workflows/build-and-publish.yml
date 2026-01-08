@@ -76,7 +76,7 @@ jobs:
         working-directory: .
 
       - name: Pack DBAdminPanel.SourceGenerator
-        run: dotnet pack src/DBAdminPanel.SourceGenerator/DBAdminPanel.SourceGenerator.csproj --configuration Release --no-build --output ./artifacts
+        run: dotnet pack src/DBAdminPanel.SourceGenerator/DBAdminPanel.SourceGenerator.csproj --configuration Release --output ./artifacts
         working-directory: .
 
       - name: Pack DBAdminPanel
@@ -158,7 +158,7 @@ jobs:
           # Build solution
           dotnet build --configuration Release --no-restore
           # Pack both packages
-          dotnet pack src/DBAdminPanel.SourceGenerator/DBAdminPanel.SourceGenerator.csproj --configuration Release --no-build --output ./artifacts
+          dotnet pack src/DBAdminPanel.SourceGenerator/DBAdminPanel.SourceGenerator.csproj --configuration Release --output ./artifacts
           dotnet pack src/DBAdminPanel/DBAdminPanel.csproj --configuration Release --no-build --output ./artifacts
 
       - name: Publish DBAdminPanel.SourceGenerator to NuGet
