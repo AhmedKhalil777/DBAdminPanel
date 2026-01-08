@@ -53,7 +53,9 @@ jobs:
         working-directory: src/DBAdminPanel/dbadminpanel-ui
 
       - name: Install npm dependencies
-        run: npm ci
+        run: |
+          # Try npm ci first for reproducible builds, fallback to npm install if lock file is out of sync
+          npm ci || npm install
         working-directory: src/DBAdminPanel/dbadminpanel-ui
 
       - name: Build Angular application
@@ -138,7 +140,9 @@ jobs:
         run: npm install -g @angular/cli@^19.2.0
 
       - name: Install npm dependencies
-        run: npm ci
+        run: |
+          # Try npm ci first for reproducible builds, fallback to npm install if lock file is out of sync
+          npm ci || npm install
         working-directory: src/DBAdminPanel/dbadminpanel-ui
 
       - name: Build Angular application

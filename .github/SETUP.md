@@ -119,6 +119,29 @@ We recommend using [Semantic Versioning](https://semver.org/):
 2. **Manual Input**: Version specified in workflow dispatch
 3. **Project File**: Version from `.csproj` `<PackageVersion>` element
 
+## Fixing npm Lock File Issues
+
+If you encounter `npm ci` errors about package.json and package-lock.json being out of sync:
+
+1. **Navigate to the Angular UI directory**:
+   ```bash
+   cd src/DBAdminPanel/dbadminpanel-ui
+   ```
+
+2. **Update the lock file**:
+   ```bash
+   npm install
+   ```
+
+3. **Commit the updated lock file**:
+   ```bash
+   git add package-lock.json
+   git commit -m "Update package-lock.json"
+   git push
+   ```
+
+The workflow now has a fallback that uses `npm install` if `npm ci` fails, but it's best practice to keep the lock file in sync.
+
 ## Troubleshooting
 
 ### Issue: Workflow fails with "NuGet API key not found"
